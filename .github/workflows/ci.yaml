@@ -3,23 +3,18 @@ name: Continuous Integration
 on: push
 
 jobs:
-  lint:
-    name: Linting
+  lint-and-tests:
+    name: Linting & Testing
     runs-on: ubuntu-latest
     steps:
+    # Setup
     - uses: actions/checkout@v3
     - uses: astral-sh/setup-uv@v3
 
+    # Lint
     - run: uv run ruff format --diff .
     - run: uv run ruff check .
     - run: uv run mypy .
 
-
-  test:
-    name: Run tests
-    runs-on: ubuntu-latest
-    steps:
-    - uses: actions/checkout@v3
-    - uses: astral-sh/setup-uv@v3
-
+    # Test
     - run: uv run pytest
