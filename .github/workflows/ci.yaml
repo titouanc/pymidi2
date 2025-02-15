@@ -7,8 +7,8 @@ jobs:
     name: Linting
     runs-on: ubuntu-latest
     steps:
+    - uses: actions/checkout@v3
     - uses: astral-sh/setup-uv@v3
-    - run: uv sync
 
     - run: uv run ruff format --diff .
     - run: uv run ruff check .
@@ -19,7 +19,7 @@ jobs:
     name: Run tests
     runs-on: ubuntu-latest
     steps:
+    - uses: actions/checkout@v3
     - uses: astral-sh/setup-uv@v3
-    - run: uv sync
 
     - run: uv run pytest
