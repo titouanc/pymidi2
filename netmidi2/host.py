@@ -1,7 +1,7 @@
 import logging
 import platform
 
-from .core import CommandCode, MIDISession, CommandPacket, UMPNetEndpoint, SessionState, MIDIUDPPacket
+from .core import CommandCode, MIDISession, CommandPacket, UMPNetEndpoint, SessionState
 
 logger = logging.getLogger()
 
@@ -12,15 +12,15 @@ class MIDIHost(UMPNetEndpoint):
         name: str,
         product_instance_id: str = "",
         bind_ip: str = "0.0.0.0",
-        bind_port: int = 5673
+        bind_port: int = 5673,
     ):
         super().__init__(
             name=name,
             product_instance_id=product_instance_id,
             bind_ip=bind_ip,
-            bind_port=bind_port
+            bind_port=bind_port,
         )
-        self.sessions = {}
+        self.sessions: dict[tuple[str, int], MIDISession] = {}
 
     def dispatch_packet(self, addr_info: tuple[str, int], pkt: CommandPacket):
         sess = self.sessions.setdefault(addr_info, MIDISession())
@@ -33,19 +33,35 @@ class MIDIHost(UMPNetEndpoint):
                     payload=pkt.payload,
                 )
                 self.send(addr_info, [reply])
+
             case CommandCode.INVITATION:
-                assert sess.state in {SessionState.IDLE, SessionState.ESTABLISHED_SESSION}
+                assert sess.state in {
+                    SessionState.IDLE,
+                    SessionState.ESTABLISHED_SESSION,
+                }
                 remote_name_len = 4 * (pkt.specific_data >> 8)
-                remote_name = pkt.payload[:remote_name_len].rstrip(b'\x00').decode("utf-8")
-                remote_piid = pkt.payload[remote_name_len:].rstrip(b'\x00').decode("ascii")
+                remote_name = (
+                    pkt.payload[:remote_name_len].rstrip(b"\x00").decode("utf-8")
+                )
+                remote_piid = (
+                    pkt.payload[remote_name_len:].rstrip(b"\x00").decode("ascii")
+                )
                 sess.remote = (remote_name, remote_piid)
 
-                reply = self.get_identity(as_command=CommandCode.INVITATION_REPLY_ACCEPTED)
+                reply = self.get_identity(
+                    as_command=CommandCode.INVITATION_REPLY_ACCEPTED
+                )
                 self.send(addr_info, [reply])
                 sess.state = SessionState.ESTABLISHED_SESSION
+
             case CommandCode.UMP_DATA:
                 assert sess.state is SessionState.ESTABLISHED_SESSION
-                logger.info(f"UMP DATA: {pkt.payload}")
+                logger.info(f"UMP DATA: {pkt.payload!r}")
+
+            case CommandCode.BYE:
+                logger.info(f"Bye from {sess} ({pkt.payload.decode('utf-8')})")
+                self.sessions.pop(addr_info)
+                reply = CommandPacket(command=CommandCode.BYE_REPLY)
 
     def main(self):
         addr_info, udp_pkt = self.recv()

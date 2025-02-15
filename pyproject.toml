@@ -5,7 +5,7 @@ readme = "README.md"
 dynamic = ["version"]
 requires-python = ">=3.10"
 dependencies = [
-    "typing-extensions; python_version<'3.11'"
+    "typing-extensions"
 ]
 authors = [
     {name = "Titouan Christophe", email = "moiandme@gmail.com"}

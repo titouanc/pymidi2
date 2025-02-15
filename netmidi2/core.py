@@ -11,10 +11,8 @@ import struct
 from enum import Enum, IntEnum, IntFlag, auto
 from dataclasses import dataclass
 from math import ceil
-try:
-    from typing import Self
-except ImportError:
-    from typing_extensions import Self
+
+from typing_extensions import Self
 
 logger = logging.getLogger("netmidi2.core")
 
@@ -23,15 +21,17 @@ class ClientCapability(IntFlag):
     """
     Spec 6.4: Table 11: Capabilities for Invitation
     """
+
     NONE = 0
-    INVITATION_WITH_AUTH = (1 << 0)
-    INVITATION_WITH_USER_AUTH = (1 << 1)
+    INVITATION_WITH_AUTH = 1 << 0
+    INVITATION_WITH_USER_AUTH = 1 << 1
 
 
 class SessionState(Enum):
     """
     Spec 6.1: Session States
     """
+
     IDLE = auto()
     PENDING_INVITATION = auto()
     AUTHENTICATION_REQUIRED = auto()
@@ -44,6 +44,7 @@ class CommandCode(IntEnum):
     """
     Spec 5.5 Command Codes ad Packet Types
     """
+
     INVITATION = 0x01
     INVITATION_WITH_AUTH = 0x02
     INVITATION_WITH_USER_AUTH = 0x03
@@ -57,10 +58,10 @@ class CommandCode(IntEnum):
     RETRANSMIT_ERROR = 0x81
     SESSION_RESET = 0x82
     SESSION_RESET_REPLY = 0x83
-    NAK = 0x8f
-    BYE = 0xf0
-    BYE_REPLY = 0xf1
-    UMP_DATA = 0xff
+    NAK = 0x8F
+    BYE = 0xF0
+    BYE_REPLY = 0xF1
+    UMP_DATA = 0xFF
 
 
 @dataclass(frozen=True)
@@ -68,6 +69,7 @@ class CommandPacket:
     """
     Spec 5.4: Command Packet Header and Payload
     """
+
     command: CommandCode
     specific_data: int = 0
     payload: bytes = b""
@@ -80,7 +82,7 @@ class CommandPacket:
             )
 
     @classmethod
-    def parse(cls, buf: bytes) -> (Self, bytes):
+    def parse(cls, buf: bytes) -> tuple[Self, bytes]:
         head, payload = buf[:4], buf[4:]
         command, payload_length_words, specific_data = struct.unpack("!BBH", head)
         payload_length = 4 * payload_length_words
@@ -94,12 +96,14 @@ class CommandPacket:
         res = cls(
             command=CommandCode(command),
             specific_data=specific_data,
-            payload=payload[:payload_length]
+            payload=payload[:payload_length],
         )
         return res, payload[payload_length:]
 
     def __bytes__(self) -> bytes:
-        res = struct.pack("!BBH", self.command, len(self.payload) // 4, self.specific_data)
+        res = struct.pack(
+            "!BBH", self.command, len(self.payload) // 4, self.specific_data
+        )
         return res + self.payload
 
 
@@ -131,7 +135,7 @@ class MIDISession:
 
     def next_seq(self) -> int:
         res = self.ump_seq
-        self.ump_seq = (self.ump_seq + 1) & 0xffff
+        self.ump_seq = (self.ump_seq + 1) & 0xFFFF
         return res
 
 
@@ -148,7 +152,9 @@ class UMPNetEndpoint:
         self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         logger.info(f"Bound to {self.bind_ip}:{self.bind_port}")
 
-    def send(self, addr_info: tuple[str, int], pkts: MIDIUDPPacket | list[CommandPacket]):
+    def send(
+        self, addr_info: tuple[str, int], pkts: MIDIUDPPacket | list[CommandPacket]
+    ):
         if not isinstance(pkts, MIDIUDPPacket):
             pkts = MIDIUDPPacket(commands=pkts)
         buf = bytes(pkts)
@@ -160,7 +166,11 @@ class UMPNetEndpoint:
         logger.debug(f"Rx {addr_info} {buf!r}")
         return addr_info, MIDIUDPPacket.parse(buf)
 
-    def get_identity(self, as_command: CommandCode, capabilities: ClientCapability = ClientCapability.NONE) -> CommandPacket:
+    def get_identity(
+        self,
+        as_command: CommandCode,
+        capabilities: ClientCapability = ClientCapability.NONE,
+    ) -> CommandPacket:
         name = self.name.encode("utf-8")
         piid = self.product_instance_id.encode("ascii")
         name_len = int(ceil(len(name) / 4))

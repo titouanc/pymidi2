@@ -2,7 +2,14 @@ import logging
 import platform
 from uuid import uuid4
 
-from .core import CommandCode, MIDISession, CommandPacket, UMPNetEndpoint, SessionState, ClientCapability
+from .core import (
+    CommandCode,
+    MIDISession,
+    CommandPacket,
+    UMPNetEndpoint,
+    SessionState,
+    ClientCapability,
+)
 
 logger = logging.getLogger("netmidi2.client")
 
@@ -10,10 +17,10 @@ logger = logging.getLogger("netmidi2.client")
 class MIDIClient(UMPNetEndpoint):
     def __init__(
         self,
+        host_ip: str,
+        host_port: int,
         name: str,
         product_instance_id: str = "",
-        host_ip: str = "127.0.0.1",
-        host_port: int = 5673,
         bind_ip: str = "0.0.0.0",
         bind_port: int = 0,
     ):
@@ -21,7 +28,7 @@ class MIDIClient(UMPNetEndpoint):
             name=name,
             product_instance_id=product_instance_id,
             bind_ip=bind_ip,
-            bind_port=bind_port
+            bind_port=bind_port,
         )
         self.session = MIDISession()
         self.host = (host_ip, host_port)
@@ -37,10 +44,7 @@ class MIDIClient(UMPNetEndpoint):
                     return pkt
 
     def ping(self):
-        ping_pkt = CommandPacket(
-            command=CommandCode.PING,
-            payload=uuid4().bytes[:4]
-        )
+        ping_pkt = CommandPacket(command=CommandCode.PING, payload=uuid4().bytes[:4])
         self.send(self.host, [ping_pkt])
         while True:
             reply = self.expect(CommandCode.PING_REPLY)
@@ -57,8 +61,8 @@ class MIDIClient(UMPNetEndpoint):
         res = self.expect(CommandCode.INVITATION_REPLY_ACCEPTED)
 
         remote_name_len = 4 * (res.specific_data >> 8)
-        remote_name = res.payload[:remote_name_len].rstrip(b'\x00').decode("utf-8")
-        remote_piid = res.payload[remote_name_len:].rstrip(b'\x00').decode("ascii")
+        remote_name = res.payload[:remote_name_len].rstrip(b"\x00").decode("utf-8")
+        remote_piid = res.payload[remote_name_len:].rstrip(b"\x00").decode("ascii")
         self.session.remote = (remote_name, remote_piid)
         self.session.state = SessionState.ESTABLISHED_SESSION
         logger.info(f"Invited {self.session}")
@@ -77,12 +81,17 @@ if __name__ == "__main__":
 
     logging.basicConfig(level=logging.DEBUG)
 
-    client = MIDIClient(name="The client", product_instance_id=platform.node())
+    client = MIDIClient(
+        host_ip="localhost",
+        host_port=5763,
+        name="The client",
+        product_instance_id=platform.node(),
+    )
     client.ping()
     client.invite()
-    while True:
+
+    for i in range(10):
         client.send_midi(b"\x20\x90\x11\x29")
         sleep(0.5)
         client.send_midi(b"\x20\x80\x11\x29")
         sleep(0.5)
-

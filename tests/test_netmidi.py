@@ -2,6 +2,7 @@ import pytest
 
 from netmidi2.core import CommandCode, CommandPacket, MIDIUDPPacket
 
+
 def test_decode_valid_packet():
     pkt, rest = CommandPacket.parse(b"\xff\x01\x12\x34****")
     assert rest == b""
@@ -17,7 +18,9 @@ def test_decode_with_rest():
 
 
 def test_encode_valid_packet():
-    pkt = CommandPacket(command=CommandCode.UMP_DATA, specific_data=2047, payload=b"Coucou  ")
+    pkt = CommandPacket(
+        command=CommandCode.UMP_DATA, specific_data=2047, payload=b"Coucou  "
+    )
     assert bytes(pkt) == b"\xff\x02\x07\xffCoucou  "
 
 
