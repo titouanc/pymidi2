@@ -1,0 +1,28 @@
+[project]
+name = "netmidi2"
+description = "A pure Python implementation of Network MIDI 2.0 (UDP) Transport Specification"
+readme = "README.md"
+dynamic = ["version"]
+requires-python = ">=3.10"
+dependencies = [
+    "typing-extensions; python_version<'3.11'"
+]
+authors = [
+    {name = "Titouan Christophe", email = "moiandme@gmail.com"}
+]
+license = "MIT"
+
+[build-system]
+requires = ["hatchling", "hatch-vcs"]
+build-backend = "hatchling.build"
+
+[tool.hatch.version]
+source = "vcs"
+
+[tool.uv]
+dev-dependencies = [
+    "mypy>=1.15.0",
+    "pytest-cov>=6.0.0",
+    "pytest>=8.3.4",
+    "ruff>=0.9.6",
+]
