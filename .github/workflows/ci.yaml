@@ -8,6 +8,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: astral-sh/setup-uv@v3
+    - run: uv sync
+
     - run: uv run ruff format --diff .
     - run: uv run ruff check .
     - run: uv run mypy .
@@ -18,4 +20,6 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: astral-sh/setup-uv@v3
+    - run: uv sync
+
     - run: uv run pytest
