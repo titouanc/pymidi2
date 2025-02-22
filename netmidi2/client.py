@@ -77,13 +77,17 @@ class MIDIClient(UMPNetEndpoint):
 
 
 if __name__ == "__main__":
+    from sys import argv
     from time import sleep
 
     logging.basicConfig(level=logging.DEBUG)
 
+    host_ip = argv[1] if len(argv) > 1 else "localhost"
+    host_port = int(argv[2]) if len(argv) > 2 else 5673
+
     client = MIDIClient(
-        host_ip="localhost",
-        host_port=5763,
+        host_ip=host_ip,
+        host_port=host_port,
         name="The client",
         product_instance_id=platform.node(),
     )
