@@ -14,6 +14,10 @@ class MessageType(IntEnum):
     FLEX_DATA = 0xD
     UMP_STREAM = 0xF
 
+    @property
+    def num_words(self) -> int:
+        return UMP_NUM_WORDS[self]
+
 
 UMP_NUM_WORDS = {
     MessageType.UTILITY: 1,
