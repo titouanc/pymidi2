@@ -27,6 +27,9 @@ class MIDIHost(UMPNetEndpoint):
         logger.debug(f"Dispatching {pkt} for {sess}")
 
         match pkt.command:
+            case CommandCode.UMP_DATA:
+                self.send(addr_info, [pkt])
+
             case CommandCode.PING:
                 reply = CommandPacket(
                     command=CommandCode.PING_REPLY,
