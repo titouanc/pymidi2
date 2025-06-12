@@ -19,7 +19,9 @@ def test_decode_with_rest():
 
 def test_encode_valid_packet():
     pkt = CommandPacket(
-        command=CommandCode.UMP_DATA, specific_data=2047, payload=b"Coucou  ",
+        command=CommandCode.UMP_DATA,
+        specific_data=2047,
+        payload=b"Coucou  ",
     )
     assert bytes(pkt) == b"\xff\x02\x07\xffCoucou  "
 

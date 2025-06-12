@@ -101,7 +101,10 @@ class CommandPacket:
 
     def __bytes__(self) -> bytes:
         res = struct.pack(
-            "!BBH", self.command, len(self.payload) // 4, self.specific_data,
+            "!BBH",
+            self.command,
+            len(self.payload) // 4,
+            self.specific_data,
         )
         return res + self.payload
 
@@ -152,7 +155,9 @@ class UMPNetEndpoint:
         logger.info(f"Bound to {self.bind_ip}:{self.bind_port}")
 
     def send(
-        self, addr_info: tuple[str, int], pkts: MIDIUDPPacket | list[CommandPacket],
+        self,
+        addr_info: tuple[str, int],
+        pkts: MIDIUDPPacket | list[CommandPacket],
     ):
         if not isinstance(pkts, MIDIUDPPacket):
             pkts = MIDIUDPPacket(commands=pkts)

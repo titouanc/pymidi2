@@ -886,7 +886,8 @@ class DeviceIdentityNotification(UMPStream):
         model_msb = (self.device_family_model >> 7) & 0x7F
         words[1] |= int.from_bytes(self.device_manufacturer, byteorder="big")
         words[2] = int.from_bytes(
-            (family_lsb, family_msb, model_lsb, model_msb), byteorder="big",
+            (family_lsb, family_msb, model_lsb, model_msb),
+            byteorder="big",
         )
         words[3] = int.from_bytes(self.software_revision, byteorder="big")
 
