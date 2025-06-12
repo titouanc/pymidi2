@@ -11,7 +11,7 @@ from .core import (
     ClientCapability,
 )
 
-logger = logging.getLogger("netmidi2.client")
+logger = logging.getLogger("pymidi2.client")
 
 
 class MIDIClient(UMPNetEndpoint):

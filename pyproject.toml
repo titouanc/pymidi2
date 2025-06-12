@@ -1,6 +1,6 @@
 [project]
-name = "netmidi2"
-description = "A pure Python implementation of Network MIDI 2.0 (UDP) Transport Specification"
+name = "pymidi2"
+description = "A pure Python implementation of MIDI 2.0 (UMP)"
 readme = "README.md"
 dynamic = ["version"]
 requires-python = ">=3.10"

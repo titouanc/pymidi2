@@ -1,6 +1,6 @@
 import pytest
 
-import netmidi2.ump as ump
+import pymidi2.ump as ump
 
 TEST_PACKETS = [
     # MIDI 1.0 Channel Voice Messages

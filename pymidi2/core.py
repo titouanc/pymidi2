@@ -14,7 +14,7 @@ from math import ceil
 
 from typing_extensions import Self
 
-logger = logging.getLogger("netmidi2.core")
+logger = logging.getLogger("pymidi2.core")
 
 
 class ClientCapability(IntFlag):
