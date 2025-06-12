@@ -38,130 +38,6 @@ class UMPStreamFormat(IntEnum):
     END = 3
 
 
-class UMPStreamStatus(IntEnum):
-    """UMP Stream Message Status values"""
-
-    ENDPOINT_DISCOVERY = 0x00
-    ENDPOINT_INFO_NOTIFICATION = 0x01
-    DEVICE_IDENTITY_NOTIFICATION = 0x02
-    ENDPOINT_NAME_NOTIFICATION = 0x03
-    PRODUCT_INSTANCE_ID_NOTIFICATION = 0x04
-    STREAM_CONFIGURATION_REQUEST = 0x05
-    STREAM_CONFIGURATION_NOTIFICATION = 0x06
-    FUNCTION_BLOCK_DISCOVERY = 0x10
-    FUNCTION_BLOCK_INFO_NOTIFICATION = 0x11
-    FUNCTION_BLOCK_NAME_NOTIFICATION = 0x12
-    START_OF_CLIP = 0x20
-    END_OF_CLIP = 0x21
-
-
-class UtilityStatus(IntEnum):
-    """Utility Message Status values"""
-
-    NOOP = 0x0
-    JR_CLOCK = 0x1
-    JR_TIMESTAMP = 0x2
-    DELTA_CLOCKSTAMP_TPQ = 0x3
-    DELTA_CLOCKSTAMP = 0x4
-
-
-class SystemRealTimeStatus(IntEnum):
-    """System Real Time Message Status values"""
-
-    MIDI_TIME_CODE = 0x1
-    SONG_POSITION_POINTER = 0x2
-    SONG_SELECT = 0x3
-    TUNE_REQUEST = 0x6
-    TIMING_CLOCK = 0x8
-    START = 0xA
-    CONTINUE = 0xB
-    STOP = 0xC
-    ACTIVE_SENSING = 0xE
-    RESET = 0xF
-
-
-class MIDI1Status(IntEnum):
-    """MIDI 1.0 Channel Voice Message Status values"""
-
-    NOTE_OFF = 0x8
-    NOTE_ON = 0x9
-    POLY_PRESSURE = 0xA
-    CONTROL_CHANGE = 0xB
-    PROGRAM_CHANGE = 0xC
-    CHANNEL_PRESSURE = 0xD
-    PITCH_BEND = 0xE
-
-
-class MIDI2Status(IntEnum):
-    """MIDI 2.0 Channel Voice Message Status values"""
-
-    REGISTERED_PER_NOTE_CONTROLLER = 0x0
-    ASSIGNABLE_PER_NOTE_CONTROLLER = 0x1
-    REGISTERED_CONTROLLER = 0x2
-    ASSIGNABLE_CONTROLLER = 0x3
-    RELATIVE_REGISTERED_CONTROLLER = 0x4
-    RELATIVE_ASSIGNABLE_CONTROLLER = 0x5
-    PER_NOTE_PITCH_BEND = 0x6
-    NOTE_OFF = 0x8
-    NOTE_ON = 0x9
-    POLY_PRESSURE = 0xA
-    CONTROL_CHANGE = 0xB
-    PROGRAM_CHANGE = 0xC
-    CHANNEL_PRESSURE = 0xD
-    PITCH_BEND = 0xE
-    PER_NOTE_MANAGEMENT = 0xF
-
-
-class FlexDataStatusBank(IntEnum):
-    SETUP_AND_PERFORMANCE_EVENTS = 0x00
-    METADATA_TEXT = 0x01
-    PERFORMANCE_TEXT_EVENTS = 0x02
-
-
-class PerformanceEventStatus(IntEnum):
-    SET_TEMPO = 0x00
-    SET_TIME_SIGNATURE = 0x01
-    SET_METRONOME = 0x02
-    SET_KEY_SIGNATURE = 0x05
-    SET_CHORD_NAME = 0x06
-    TEXT_EVENT = 0x10
-
-
-class MetadataTextStatus(IntEnum):
-    UNKNOWN = 0x00
-    PROJECT_NAME = 0x01
-    SONG_NAME = 0x02
-    MIDI_CLIP_NAME = 0x03
-    COPYRIGHT_NOTICE = 0x04
-    COMPOSER_NAME = 0x05
-    LYRICIST_NAME = 0x06
-    ARRANGER_NAME = 0x07
-    PUBLISHER_NAME = 0x08
-    PRIMARY_PERFOMER_NAME = 0x09
-    ACCOMPANYING_PERFORMER_NAME = 0x0A
-    RECORDING_DATE = 0x0B
-    RECORDING_LOCATION = 0x0C
-
-
-class PerformanceTextStatus(IntEnum):
-    UNKNOWN = 0x00
-    LYRICS = 0x01
-    LYRICS_LANGUAGE = 0x02
-    RUBY = 0x03
-    RUBY_LANGUAGE = 0x04
-
-
-class MIDITimeCodeType(IntEnum):
-    FRAME_LOW_NIBBLE = 0
-    FRAME_HIGH_NIBBLE = 1
-    SECONDS_LOW_NIBBLE = 2
-    SECONDS_HIGH_NIBBLE = 3
-    MINUTES_LOW_NIBBLE = 4
-    MINUTES_HIGH_NIBBLE = 5
-    HOURS_LOW_NIBBLE = 6
-    HOURS_HIGH_NIBBLE = 7
-
-
 @dataclass
 class UMP:
     mt: MessageType = field(init=False)
@@ -183,14 +59,21 @@ class UMP:
 # Utility Messages
 @dataclass
 class Utility(UMP):
-    status: UtilityStatus = field(init=False)
+    class Status(IntEnum):
+        NOOP = 0x0
+        JR_CLOCK = 0x1
+        JR_TIMESTAMP = 0x2
+        DELTA_CLOCKSTAMP_TPQ = 0x3
+        DELTA_CLOCKSTAMP = 0x4
+
+    status: Status = field(init=False)
 
     def __post_init__(self):
         self.mt = MessageType.UTILITY
 
     @classmethod
     def parse(cls, words, **kwargs):
-        status = UtilityStatus((words[0] >> 20) & 0xF)
+        status = cls.Status((words[0] >> 20) & 0xF)
         return UTILITY_BY_STATUS[status].parse(words, **kwargs)
 
     def encode_into(self, words: list[int]) -> None:
@@ -202,7 +85,7 @@ class Utility(UMP):
 class NoOp(Utility):
     def __post_init__(self):
         super().__post_init__()
-        self.status = UtilityStatus.NOOP
+        self.status = Utility.Status.NOOP
 
     @classmethod
     def parse(cls, words, **kwargs):
@@ -215,7 +98,7 @@ class JRClock(Utility):
 
     def __post_init__(self):
         super().__post_init__()
-        self.status = UtilityStatus.JR_CLOCK
+        self.status = Utility.Status.JR_CLOCK
 
     @classmethod
     def parse(cls, words, **kwargs):
@@ -232,7 +115,7 @@ class JRTimestamp(Utility):
 
     def __post_init__(self):
         super().__post_init__()
-        self.status = UtilityStatus.JR_TIMESTAMP
+        self.status = Utility.Status.JR_TIMESTAMP
 
     @classmethod
     def parse(cls, words, **kwargs):
@@ -246,14 +129,26 @@ class JRTimestamp(Utility):
 # System Real Time Messages
 @dataclass
 class SystemRealTime(UMP):
-    status: SystemRealTimeStatus = field(init=False)
+    class Status(IntEnum):
+        MIDI_TIME_CODE = 0x1
+        SONG_POSITION_POINTER = 0x2
+        SONG_SELECT = 0x3
+        TUNE_REQUEST = 0x6
+        TIMING_CLOCK = 0x8
+        START = 0xA
+        CONTINUE = 0xB
+        STOP = 0xC
+        ACTIVE_SENSING = 0xE
+        RESET = 0xF
+
+    status: Status = field(init=False)
 
     def __post_init__(self):
         self.mt = MessageType.SYSTEM_REAL_TIME
 
     @classmethod
     def parse(cls, words, **kwargs):
-        status = SystemRealTimeStatus((words[0] >> 16) & 0xFF)
+        status = SystemRealTime.Status((words[0] >> 16) & 0xFF)
         return SYSTEM_RT_BY_STATUS.get(status, cls).parse(words, **kwargs)
 
     def encode_into(self, words: list[int]) -> None:
@@ -263,17 +158,27 @@ class SystemRealTime(UMP):
 
 @dataclass
 class MIDITimeCode(SystemRealTime):
-    type: MIDITimeCodeType
+    class TimeUnit(IntEnum):
+        FRAME_LOW_NIBBLE = 0
+        FRAME_HIGH_NIBBLE = 1
+        SECONDS_LOW_NIBBLE = 2
+        SECONDS_HIGH_NIBBLE = 3
+        MINUTES_LOW_NIBBLE = 4
+        MINUTES_HIGH_NIBBLE = 5
+        HOURS_LOW_NIBBLE = 6
+        RATE_AND_HOURS_HIGH_NIBBLE = 7
+
+    type: TimeUnit
     value: int
 
     def __post_init__(self):
         super().__post_init__()
-        self.status = SystemRealTimeStatus.MIDI_TIME_CODE
+        self.status = SystemRealTime.Status.MIDI_TIME_CODE
 
     @classmethod
     def parse(cls, words, **kwargs):
         return cls(
-            type=MIDITimeCodeType((words[0] >> 12) & 0x07),
+            type=cls.TimeUnit((words[0] >> 12) & 0x07),
             value=(words[0] >> 8) & 0x0F,
             **kwargs,
         )
@@ -289,7 +194,7 @@ class SongPositionPointer(SystemRealTime):
 
     def __post_init__(self):
         super().__post_init__()
-        self.status = SystemRealTimeStatus.SONG_POSITION_POINTER
+        self.status = SystemRealTime.Status.SONG_POSITION_POINTER
 
     @classmethod
     def parse(cls, words, **kwargs):
@@ -306,8 +211,17 @@ class SongPositionPointer(SystemRealTime):
 # MIDI 1.0 Channel Voice Messages
 @dataclass
 class MIDI1ChannelVoice(UMP):
+    class Status(IntEnum):
+        NOTE_OFF = 0x8
+        NOTE_ON = 0x9
+        POLY_PRESSURE = 0xA
+        CONTROL_CHANGE = 0xB
+        PROGRAM_CHANGE = 0xC
+        CHANNEL_PRESSURE = 0xD
+        PITCH_BEND = 0xE
+
     group: int
-    status: MIDI1Status = field(init=False)
+    status: Status = field(init=False)
     channel: int
 
     def __post_init__(self):
@@ -316,7 +230,7 @@ class MIDI1ChannelVoice(UMP):
     @classmethod
     def parse(cls, words, **kwargs):
         group = (words[0] >> 24) & 0xF
-        status = MIDI1Status((words[0] >> 20) & 0xF)
+        status = cls.Status((words[0] >> 20) & 0xF)
         channel = (words[0] >> 16) & 0xF
         return MIDI1_BY_STATUS[status].parse(
             words,
@@ -337,7 +251,7 @@ class MIDI1NoteOff(MIDI1ChannelVoice):
 
     def __post_init__(self):
         super().__post_init__()
-        self.status = MIDI1Status.NOTE_OFF
+        self.status = MIDI1ChannelVoice.Status.NOTE_OFF
 
     @classmethod
     def parse(cls, words, **kwargs):
@@ -355,7 +269,7 @@ class MIDI1NoteOn(MIDI1ChannelVoice):
 
     def __post_init__(self):
         super().__post_init__()
-        self.status = MIDI1Status.NOTE_ON
+        self.status = MIDI1ChannelVoice.Status.NOTE_ON
 
     @classmethod
     def parse(cls, words, **kwargs):
@@ -373,7 +287,7 @@ class MIDI1ControlChange(MIDI1ChannelVoice):
 
     def __post_init__(self):
         super().__post_init__()
-        self.status = MIDI1Status.CONTROL_CHANGE
+        self.status = MIDI1ChannelVoice.Status.CONTROL_CHANGE
 
     @classmethod
     def parse(cls, words, **kwargs):
@@ -390,7 +304,7 @@ class MIDI1ProgramChange(MIDI1ChannelVoice):
 
     def __post_init__(self):
         super().__post_init__()
-        self.status = MIDI1Status.PROGRAM_CHANGE
+        self.status = MIDI1ChannelVoice.Status.PROGRAM_CHANGE
 
     @classmethod
     def parse(cls, words, **kwargs):
@@ -407,7 +321,7 @@ class MIDI1PitchBend(MIDI1ChannelVoice):
 
     def __post_init__(self):
         super().__post_init__()
-        self.status = MIDI1Status.PITCH_BEND
+        self.status = MIDI1ChannelVoice.Status.PITCH_BEND
 
     @classmethod
     def parse(cls, words, **kwargs):
@@ -426,8 +340,25 @@ class MIDI1PitchBend(MIDI1ChannelVoice):
 # MIDI 2.0 Channel Voice Messages
 @dataclass
 class MIDI2ChannelVoice(UMP):
+    class Status(IntEnum):
+        REGISTERED_PER_NOTE_CONTROLLER = 0x0
+        ASSIGNABLE_PER_NOTE_CONTROLLER = 0x1
+        REGISTERED_CONTROLLER = 0x2
+        ASSIGNABLE_CONTROLLER = 0x3
+        RELATIVE_REGISTERED_CONTROLLER = 0x4
+        RELATIVE_ASSIGNABLE_CONTROLLER = 0x5
+        PER_NOTE_PITCH_BEND = 0x6
+        NOTE_OFF = 0x8
+        NOTE_ON = 0x9
+        POLY_PRESSURE = 0xA
+        CONTROL_CHANGE = 0xB
+        PROGRAM_CHANGE = 0xC
+        CHANNEL_PRESSURE = 0xD
+        PITCH_BEND = 0xE
+        PER_NOTE_MANAGEMENT = 0xF
+
     group: int
-    status: MIDI2Status = field(init=False)
+    status: Status = field(init=False)
     channel: int
 
     def __post_init__(self):
@@ -436,7 +367,7 @@ class MIDI2ChannelVoice(UMP):
     @classmethod
     def parse(cls, words, **kwargs):
         group = (words[0] >> 24) & 0xF
-        status = MIDI2Status((words[0] >> 20) & 0xF)
+        status = cls.Status((words[0] >> 20) & 0xF)
         channel = (words[0] >> 16) & 0xF
         return MIDI2_BY_STATUS[status].parse(
             words,
@@ -459,7 +390,7 @@ class MIDI2NoteOff(MIDI2ChannelVoice):
 
     def __post_init__(self):
         super().__post_init__()
-        self.status = MIDI2Status.NOTE_OFF
+        self.status = MIDI2ChannelVoice.Status.NOTE_OFF
 
     @classmethod
     def parse(cls, words, **kwargs):
@@ -486,7 +417,7 @@ class MIDI2NoteOn(MIDI2ChannelVoice):
 
     def __post_init__(self):
         super().__post_init__()
-        self.status = MIDI2Status.NOTE_ON
+        self.status = MIDI2ChannelVoice.Status.NOTE_ON
 
     @classmethod
     def parse(cls, words, **kwargs):
@@ -511,7 +442,7 @@ class MIDI2ControlChange(MIDI2ChannelVoice):
 
     def __post_init__(self):
         super().__post_init__()
-        self.status = MIDI2Status.CONTROL_CHANGE
+        self.status = MIDI2ChannelVoice.Status.CONTROL_CHANGE
 
     @classmethod
     def parse(cls, words, **kwargs):
@@ -535,7 +466,7 @@ class MIDI2ProgramChange(MIDI2ChannelVoice):
 
     def __post_init__(self):
         super().__post_init__()
-        self.status = MIDI2Status.PROGRAM_CHANGE
+        self.status = MIDI2ChannelVoice.Status.PROGRAM_CHANGE
 
     @classmethod
     def parse(cls, words, **kwargs):
@@ -563,7 +494,7 @@ class MIDI2PitchBend(MIDI2ChannelVoice):
 
     def __post_init__(self):
         super().__post_init__()
-        self.status = MIDI2Status.PITCH_BEND
+        self.status = MIDI2ChannelVoice.Status.PITCH_BEND
 
     @classmethod
     def parse(cls, words, **kwargs):
@@ -664,18 +595,23 @@ class Data128(UMP):
 # Flex Data Messages
 @dataclass
 class FlexData(UMP):
+    class StatusBank(IntEnum):
+        SETUP_AND_PERFORMANCE_EVENTS = 0x00
+        METADATA_TEXT = 0x01
+        PERFORMANCE_TEXT_EVENTS = 0x02
+
     group: int
     form: UMPStreamFormat
     address: int
     channel: int
-    status_bank: FlexDataStatusBank = field(init=False)
+    status_bank: StatusBank = field(init=False)
 
     def __post_init__(self):
         self.mt = MessageType.FLEX_DATA
 
     @classmethod
     def parse(cls, words, **kwargs):
-        status_bank = FlexDataStatusBank((words[0] >> 8) & 0xFF)
+        status_bank = cls.StatusBank((words[0] >> 8) & 0xFF)
         return FLEX_DATA_BY_STATUS_BANK[status_bank].parse(
             words,
             group=(words[0] >> 24) & 0xF,
@@ -699,14 +635,22 @@ class FlexData(UMP):
 
 @dataclass
 class SetupAndPerformanceEvent(FlexData):
-    status: PerformanceEventStatus
+    class Status(IntEnum):
+        SET_TEMPO = 0x00
+        SET_TIME_SIGNATURE = 0x01
+        SET_METRONOME = 0x02
+        SET_KEY_SIGNATURE = 0x05
+        SET_CHORD_NAME = 0x06
+        TEXT_EVENT = 0x10
+
+    status: Status
 
     def __post_init__(self):
-        self.status_bank = FlexDataStatusBank.SETUP_AND_PERFORMANCE_EVENTS
+        self.status_bank = FlexData.StatusBank.SETUP_AND_PERFORMANCE_EVENTS
 
     @classmethod
     def parse(cls, words, status, **kwargs):
-        return cls(status=PerformanceEventStatus(status))
+        return cls(status=cls.Status(status))
 
     def encode_into(self, words: list[int]) -> None:
         super().encode_into(words)
@@ -715,14 +659,29 @@ class SetupAndPerformanceEvent(FlexData):
 
 @dataclass
 class MetadataText(FlexData):
-    status: MetadataTextStatus
+    class Status(IntEnum):
+        UNKNOWN = 0x00
+        PROJECT_NAME = 0x01
+        SONG_NAME = 0x02
+        MIDI_CLIP_NAME = 0x03
+        COPYRIGHT_NOTICE = 0x04
+        COMPOSER_NAME = 0x05
+        LYRICIST_NAME = 0x06
+        ARRANGER_NAME = 0x07
+        PUBLISHER_NAME = 0x08
+        PRIMARY_PERFOMER_NAME = 0x09
+        ACCOMPANYING_PERFORMER_NAME = 0x0A
+        RECORDING_DATE = 0x0B
+        RECORDING_LOCATION = 0x0C
+
+    status: Status
 
     def __post_init__(self):
-        self.status_bank = FlexDataStatusBank.METADATA_TEXT
+        self.status_bank = FlexData.StatusBank.METADATA_TEXT
 
     @classmethod
     def parse(cls, words, status, **kwargs):
-        return cls(status=MetadataTextStatus(status))
+        return cls(status=cls.Status(status))
 
     def encode_into(self, words: list[int]) -> None:
         super().encode_into(words)
@@ -731,14 +690,21 @@ class MetadataText(FlexData):
 
 @dataclass
 class PerformanceTextEvent(FlexData):
-    status: PerformanceTextStatus
+    class Status(IntEnum):
+        UNKNOWN = 0x00
+        LYRICS = 0x01
+        LYRICS_LANGUAGE = 0x02
+        RUBY = 0x03
+        RUBY_LANGUAGE = 0x04
+
+    status: Status
 
     def __post_init__(self):
-        self.status_bank = FlexDataStatusBank.PERFORMANCE_TEXT_EVENTS
+        self.status_bank = FlexData.StatusBank.PERFORMANCE_TEXT_EVENTS
 
     @classmethod
     def parse(cls, words, status, **kwargs):
-        return cls(status=PerformanceTextStatus(status))
+        return cls(status=cls.Status(status))
 
     def encode_into(self, words: list[int]) -> None:
         super().encode_into(words)
@@ -748,8 +714,22 @@ class PerformanceTextEvent(FlexData):
 # UMP Stream Messages (keeping your existing implementation)
 @dataclass
 class UMPStream(UMP):
+    class Status(IntEnum):
+        ENDPOINT_DISCOVERY = 0x00
+        ENDPOINT_INFO_NOTIFICATION = 0x01
+        DEVICE_IDENTITY_NOTIFICATION = 0x02
+        ENDPOINT_NAME_NOTIFICATION = 0x03
+        PRODUCT_INSTANCE_ID_NOTIFICATION = 0x04
+        STREAM_CONFIGURATION_REQUEST = 0x05
+        STREAM_CONFIGURATION_NOTIFICATION = 0x06
+        FUNCTION_BLOCK_DISCOVERY = 0x10
+        FUNCTION_BLOCK_INFO_NOTIFICATION = 0x11
+        FUNCTION_BLOCK_NAME_NOTIFICATION = 0x12
+        START_OF_CLIP = 0x20
+        END_OF_CLIP = 0x21
+
     form: UMPStreamFormat
-    status: UMPStreamStatus = field(init=False)
+    status: Status = field(init=False)
 
     def __post_init__(self):
         self.mt = MessageType.UMP_STREAM
@@ -757,7 +737,7 @@ class UMPStream(UMP):
     @classmethod
     def parse(cls, words, **kwargs):
         form = UMPStreamFormat((words[0] >> 26) & 0x03)
-        status = UMPStreamStatus((words[0] >> 16) & 0x3FF)
+        status = UMPStream.Status((words[0] >> 16) & 0x3FF)
         return UMP_STREAM_BY_STATUS[status].parse(words, form=form, **kwargs)
 
     def encode_into(self, words: list[int]) -> None:
@@ -765,30 +745,29 @@ class UMPStream(UMP):
         words[0] |= (self.form << 26) | (self.status << 16)
 
 
-class EndpointDiscoveryFilter(IntFlag):
-    ENDPOINT_INFO_NOTIFICATION = 1 << 0
-    DEVICE_IDENTITY_NOTIFICATION = 1 << 1
-    ENDPOINT_NAME_NOTIFICATION = 1 << 2
-    PRODUCT_INSTANCE_ID_NOTIFICATION = 1 << 3
-    STREAM_CONFIGURATION_NOTIFICATION = 1 << 4
-
-
 @dataclass
 class EndpointDiscovery(UMPStream):
+    class Filter(IntFlag):
+        ENDPOINT_INFO_NOTIFICATION = 1 << 0
+        DEVICE_IDENTITY_NOTIFICATION = 1 << 1
+        ENDPOINT_NAME_NOTIFICATION = 1 << 2
+        PRODUCT_INSTANCE_ID_NOTIFICATION = 1 << 3
+        STREAM_CONFIGURATION_NOTIFICATION = 1 << 4
+
     ump_version_major: int
     ump_version_minor: int
-    filter: EndpointDiscoveryFilter
+    filter: Filter
 
     def __post_init__(self):
         super().__post_init__()
-        self.status = UMPStreamStatus.ENDPOINT_DISCOVERY
+        self.status = UMPStream.Status.ENDPOINT_DISCOVERY
 
     @classmethod
     def parse(cls, words, **kwargs):
         return cls(
             ump_version_major=(words[0] >> 8) & 0xFF,
             ump_version_minor=words[0] & 0xFF,
-            filter=EndpointDiscoveryFilter(words[1] & 0x1F),
+            filter=cls.Filter(words[1] & 0x1F),
             **kwargs,
         )
 
@@ -811,7 +790,7 @@ class EndpointInfoNotification(UMPStream):
 
     def __post_init__(self):
         super().__post_init__()
-        self.status = UMPStreamStatus.ENDPOINT_INFO_NOTIFICATION
+        self.status = UMPStream.Status.ENDPOINT_INFO_NOTIFICATION
 
     @classmethod
     def parse(cls, words, **kwargs):
@@ -849,7 +828,7 @@ class DeviceIdentityNotification(UMPStream):
 
     def __post_init__(self):
         super().__post_init__()
-        self.status = UMPStreamStatus.DEVICE_IDENTITY_NOTIFICATION
+        self.status = UMPStream.Status.DEVICE_IDENTITY_NOTIFICATION
         if len(self.device_manufacturer) != 3:
             raise ValueError("Device manufacturer should be a triple")
         if len(self.software_revision) != 4:
@@ -898,7 +877,7 @@ class EndpointNameNotification(UMPStream):
 
     def __post_init__(self):
         super().__post_init__()
-        self.status = UMPStreamStatus.ENDPOINT_NAME_NOTIFICATION
+        self.status = UMPStream.Status.ENDPOINT_NAME_NOTIFICATION
 
     @classmethod
     def parse(cls, words, **kwargs):
@@ -931,7 +910,7 @@ class ProductInstanceIdNotification(UMPStream):
 
     def __post_init__(self):
         super().__post_init__()
-        self.status = UMPStreamStatus.PRODUCT_INSTANCE_ID_NOTIFICATION
+        self.status = UMPStream.Status.PRODUCT_INSTANCE_ID_NOTIFICATION
 
     @classmethod
     def parse(cls, words, **kwargs):
@@ -965,7 +944,7 @@ class StreamConfigurationRequest(UMPStream):
 
     def __post_init__(self):
         super().__post_init__()
-        self.status = UMPStreamStatus.STREAM_CONFIGURATION_REQUEST
+        self.status = UMPStream.Status.STREAM_CONFIGURATION_REQUEST
 
     @classmethod
     def parse(cls, words, **kwargs):
@@ -987,7 +966,7 @@ class StreamConfigurationNotification(UMPStream):
 
     def __post_init__(self):
         super().__post_init__()
-        self.status = UMPStreamStatus.STREAM_CONFIGURATION_NOTIFICATION
+        self.status = UMPStream.Status.STREAM_CONFIGURATION_NOTIFICATION
 
     @classmethod
     def parse(cls, words, **kwargs):
@@ -1008,7 +987,7 @@ class FunctionBlockDiscovery(UMPStream):
 
     def __post_init__(self):
         super().__post_init__()
-        self.status = UMPStreamStatus.FUNCTION_BLOCK_DISCOVERY
+        self.status = UMPStream.Status.FUNCTION_BLOCK_DISCOVERY
 
     @classmethod
     def parse(cls, words, **kwargs):
@@ -1022,14 +1001,13 @@ class FunctionBlockDiscovery(UMPStream):
         words[0] |= self.function_block_filter << 8
 
 
-class MIDI1Mode(IntEnum):
-    NOT_MIDI1 = 0x00
-    MIDI1 = 0x01
-    MIDI1_RESTRICT_BANDWITH = 0x02
-
-
 @dataclass
 class FunctionBlockInfoNotification(UMPStream):
+    class MIDI1Mode(IntEnum):
+        NOT_MIDI1 = 0x00
+        MIDI1 = 0x01
+        MIDI1_RESTRICT_BANDWITH = 0x02
+
     active: bool
     function_block_id: int
     ui_hint_output: bool
@@ -1044,7 +1022,7 @@ class FunctionBlockInfoNotification(UMPStream):
 
     def __post_init__(self):
         super().__post_init__()
-        self.status = UMPStreamStatus.FUNCTION_BLOCK_INFO_NOTIFICATION
+        self.status = UMPStream.Status.FUNCTION_BLOCK_INFO_NOTIFICATION
 
     @classmethod
     def parse(cls, words, **kwargs):
@@ -1053,7 +1031,7 @@ class FunctionBlockInfoNotification(UMPStream):
             function_block_id=(words[0] >> 8) & 0x7F,
             ui_hint_output=bool((words[0] >> 5) & 1),
             ui_hint_input=bool((words[0] >> 4) & 1),
-            midi1=MIDI1Mode((words[0] >> 2) & 0x03),
+            midi1=cls.MIDI1Mode((words[0] >> 2) & 0x03),
             is_output=bool((words[0] >> 1) & 1),
             is_input=bool(words[0] & 1),
             first_group=words[1] >> 24,
@@ -1092,7 +1070,7 @@ class FunctionBlockNameNotification(UMPStream):
 
     def __post_init__(self):
         super().__post_init__()
-        self.status = UMPStreamStatus.FUNCTION_BLOCK_NAME_NOTIFICATION
+        self.status = UMPStream.Status.FUNCTION_BLOCK_NAME_NOTIFICATION
 
     @classmethod
     def parse(cls, words, **kwargs):
@@ -1141,7 +1119,7 @@ class FunctionBlockNameNotification(UMPStream):
 class StartOfClip(UMPStream):
     def __post_init__(self):
         super().__post_init__()
-        self.status = UMPStreamStatus.START_OF_CLIP
+        self.status = UMPStream.Status.START_OF_CLIP
 
     @classmethod
     def parse(cls, words, **kwargs):
@@ -1152,7 +1130,7 @@ class StartOfClip(UMPStream):
 class EndOfClip(UMPStream):
     def __post_init__(self):
         super().__post_init__()
-        self.status = UMPStreamStatus.END_OF_CLIP
+        self.status = UMPStream.Status.END_OF_CLIP
 
     @classmethod
     def parse(cls, words, **kwargs):
@@ -1172,49 +1150,49 @@ UMP_BY_MT = {
 }
 
 UTILITY_BY_STATUS = {
-    UtilityStatus.NOOP: NoOp,
-    UtilityStatus.JR_CLOCK: JRClock,
-    UtilityStatus.JR_TIMESTAMP: JRTimestamp,
+    Utility.Status.NOOP: NoOp,
+    Utility.Status.JR_CLOCK: JRClock,
+    Utility.Status.JR_TIMESTAMP: JRTimestamp,
 }
 
 SYSTEM_RT_BY_STATUS = {
-    SystemRealTimeStatus.MIDI_TIME_CODE: MIDITimeCode,
-    SystemRealTimeStatus.SONG_POSITION_POINTER: SongPositionPointer,
+    SystemRealTime.Status.MIDI_TIME_CODE: MIDITimeCode,
+    SystemRealTime.Status.SONG_POSITION_POINTER: SongPositionPointer,
 }
 
 MIDI1_BY_STATUS = {
-    MIDI1Status.NOTE_OFF: MIDI1NoteOff,
-    MIDI1Status.NOTE_ON: MIDI1NoteOn,
-    MIDI1Status.CONTROL_CHANGE: MIDI1ControlChange,
-    MIDI1Status.PROGRAM_CHANGE: MIDI1ProgramChange,
-    MIDI1Status.PITCH_BEND: MIDI1PitchBend,
+    MIDI1ChannelVoice.Status.NOTE_OFF: MIDI1NoteOff,
+    MIDI1ChannelVoice.Status.NOTE_ON: MIDI1NoteOn,
+    MIDI1ChannelVoice.Status.CONTROL_CHANGE: MIDI1ControlChange,
+    MIDI1ChannelVoice.Status.PROGRAM_CHANGE: MIDI1ProgramChange,
+    MIDI1ChannelVoice.Status.PITCH_BEND: MIDI1PitchBend,
 }
 
 MIDI2_BY_STATUS = {
-    MIDI2Status.NOTE_OFF: MIDI2NoteOff,
-    MIDI2Status.NOTE_ON: MIDI2NoteOn,
-    MIDI2Status.CONTROL_CHANGE: MIDI2ControlChange,
-    MIDI2Status.PROGRAM_CHANGE: MIDI2ProgramChange,
-    MIDI2Status.PITCH_BEND: MIDI2PitchBend,
+    MIDI2ChannelVoice.Status.NOTE_OFF: MIDI2NoteOff,
+    MIDI2ChannelVoice.Status.NOTE_ON: MIDI2NoteOn,
+    MIDI2ChannelVoice.Status.CONTROL_CHANGE: MIDI2ControlChange,
+    MIDI2ChannelVoice.Status.PROGRAM_CHANGE: MIDI2ProgramChange,
+    MIDI2ChannelVoice.Status.PITCH_BEND: MIDI2PitchBend,
 }
 
 FLEX_DATA_BY_STATUS_BANK = {
-    FlexDataStatusBank.SETUP_AND_PERFORMANCE_EVENTS: SetupAndPerformanceEvent,
-    FlexDataStatusBank.METADATA_TEXT: MetadataText,
-    FlexDataStatusBank.PERFORMANCE_TEXT_EVENTS: PerformanceTextEvent,
+    FlexData.StatusBank.SETUP_AND_PERFORMANCE_EVENTS: SetupAndPerformanceEvent,
+    FlexData.StatusBank.METADATA_TEXT: MetadataText,
+    FlexData.StatusBank.PERFORMANCE_TEXT_EVENTS: PerformanceTextEvent,
 }
 
 UMP_STREAM_BY_STATUS = {
-    UMPStreamStatus.ENDPOINT_DISCOVERY: EndpointDiscovery,
-    UMPStreamStatus.ENDPOINT_INFO_NOTIFICATION: EndpointInfoNotification,
-    UMPStreamStatus.DEVICE_IDENTITY_NOTIFICATION: DeviceIdentityNotification,
-    UMPStreamStatus.ENDPOINT_NAME_NOTIFICATION: EndpointNameNotification,
-    UMPStreamStatus.PRODUCT_INSTANCE_ID_NOTIFICATION: ProductInstanceIdNotification,
-    UMPStreamStatus.STREAM_CONFIGURATION_REQUEST: StreamConfigurationRequest,
-    UMPStreamStatus.STREAM_CONFIGURATION_NOTIFICATION: StreamConfigurationNotification,
-    UMPStreamStatus.FUNCTION_BLOCK_DISCOVERY: FunctionBlockDiscovery,
-    UMPStreamStatus.FUNCTION_BLOCK_INFO_NOTIFICATION: FunctionBlockInfoNotification,
-    UMPStreamStatus.FUNCTION_BLOCK_NAME_NOTIFICATION: FunctionBlockNameNotification,
-    UMPStreamStatus.START_OF_CLIP: StartOfClip,
-    UMPStreamStatus.END_OF_CLIP: EndOfClip,
+    UMPStream.Status.ENDPOINT_DISCOVERY: EndpointDiscovery,
+    UMPStream.Status.ENDPOINT_INFO_NOTIFICATION: EndpointInfoNotification,
+    UMPStream.Status.DEVICE_IDENTITY_NOTIFICATION: DeviceIdentityNotification,
+    UMPStream.Status.ENDPOINT_NAME_NOTIFICATION: EndpointNameNotification,
+    UMPStream.Status.PRODUCT_INSTANCE_ID_NOTIFICATION: ProductInstanceIdNotification,
+    UMPStream.Status.STREAM_CONFIGURATION_REQUEST: StreamConfigurationRequest,
+    UMPStream.Status.STREAM_CONFIGURATION_NOTIFICATION: StreamConfigurationNotification,
+    UMPStream.Status.FUNCTION_BLOCK_DISCOVERY: FunctionBlockDiscovery,
+    UMPStream.Status.FUNCTION_BLOCK_INFO_NOTIFICATION: FunctionBlockInfoNotification,
+    UMPStream.Status.FUNCTION_BLOCK_NAME_NOTIFICATION: FunctionBlockNameNotification,
+    UMPStream.Status.START_OF_CLIP: StartOfClip,
+    UMPStream.Status.END_OF_CLIP: EndOfClip,
 }

@@ -98,8 +98,8 @@ TEST_PACKETS = [
     ),
     # System Real Time Messages
     pytest.param(
-        [0x10017F00],
-        ump.MIDITimeCode(type=ump.MIDITimeCodeType.HOURS_HIGH_NIBBLE, value=15),
+        [0x10016F00],
+        ump.MIDITimeCode(type=ump.MIDITimeCode.TimeUnit.HOURS_LOW_NIBBLE, value=15),
         id="rt-timecode",
     ),
     pytest.param(
@@ -130,9 +130,9 @@ TEST_PACKETS = [
             form=ump.UMPStreamFormat.COMPLETE,
             ump_version_major=1,
             ump_version_minor=1,
-            filter=ump.EndpointDiscoveryFilter.ENDPOINT_NAME_NOTIFICATION
-            | ump.EndpointDiscoveryFilter.PRODUCT_INSTANCE_ID_NOTIFICATION
-            | ump.EndpointDiscoveryFilter.STREAM_CONFIGURATION_NOTIFICATION,
+            filter=ump.EndpointDiscovery.Filter.ENDPOINT_NAME_NOTIFICATION
+            | ump.EndpointDiscovery.Filter.PRODUCT_INSTANCE_ID_NOTIFICATION
+            | ump.EndpointDiscovery.Filter.STREAM_CONFIGURATION_NOTIFICATION,
         ),
         id="endpoint-discovery",
     ),
@@ -212,7 +212,7 @@ TEST_PACKETS = [
             function_block_id=1,
             ui_hint_output=True,
             ui_hint_input=True,
-            midi1=ump.MIDI1Mode.MIDI1_RESTRICT_BANDWITH,
+            midi1=ump.FunctionBlockInfoNotification.MIDI1Mode.MIDI1_RESTRICT_BANDWITH,
             is_input=True,
             is_output=True,
             first_group=1,
