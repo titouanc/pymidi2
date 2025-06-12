@@ -3,11 +3,14 @@ import struct
 from abc import abstractmethod
 from collections.abc import Sequence
 from dataclasses import dataclass, field, replace
+from logging import getLogger
 from pathlib import Path
 from typing import Self
 
 from .udp import ClientCapability, CommandCode, CommandPacket, MIDIUDPPacket
 from .ump import UMP, MessageType
+
+logger = getLogger(__name__)
 
 
 class Transport:
@@ -54,6 +57,7 @@ class ALSATransport(Transport):
         encoded = struct.pack("@" + len(words) * "I", *words)
         with self.location.open("wb") as fd:
             fd.write(encoded)
+            logger.debug(f"Tx {packet!r}")
 
     def recv(self) -> UMP:
         words = struct.unpack("@I", self.recvfd.read(4))
@@ -64,7 +68,9 @@ class ALSATransport(Transport):
                 "@" + "I" * remaining,
                 self.recvfd.read(4 * remaining),
             )
-        return UMP.parse(words)
+        packet = UMP.parse(words)
+        logger.debug(f"Rx {packet!r}")
+        return packet
 
 
 @dataclass

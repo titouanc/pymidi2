@@ -31,11 +31,15 @@ UMP_NUM_WORDS = {
 }
 
 
-class UMPStreamFormat(IntEnum):
+class StreamFormat(IntEnum):
     COMPLETE = 0
     START = 1
     CONTINUE = 2
     END = 3
+
+    @property
+    def is_starting(self):
+        return self in {self.COMPLETE, self.START}
 
 
 @dataclass
@@ -509,7 +513,7 @@ class MIDI2PitchBend(MIDI2ChannelVoice):
 @dataclass
 class Data64(UMP):
     group: int
-    status: UMPStreamFormat
+    status: StreamFormat
     data: list[int]  # up to 6 bytes
 
     def __post_init__(self):
@@ -524,7 +528,7 @@ class Data64(UMP):
         ]
         return cls(
             group=(words[0] >> 24) & 0xF,
-            status=UMPStreamFormat((words[0] >> 20) & 0xF),
+            status=StreamFormat((words[0] >> 20) & 0xF),
             data=data[:length],
             **kwargs,
         )
@@ -549,7 +553,7 @@ class Data64(UMP):
 @dataclass
 class Data128(UMP):
     group: int
-    status: UMPStreamFormat
+    status: StreamFormat
     stream_id: int
     data: list[int]  # up to 13 bytes
 
@@ -567,7 +571,7 @@ class Data128(UMP):
         ]
         return cls(
             group=(words[0] >> 24) & 0xF,
-            status=UMPStreamFormat((words[0] >> 20) & 0xF),
+            status=StreamFormat((words[0] >> 20) & 0xF),
             stream_id=(words[0] >> 8) & 0xFF,
             data=data[:length],
             **kwargs,
@@ -601,7 +605,7 @@ class FlexData(UMP):
         PERFORMANCE_TEXT_EVENTS = 0x02
 
     group: int
-    form: UMPStreamFormat
+    form: StreamFormat
     address: int
     channel: int
     status_bank: StatusBank = field(init=False)
@@ -615,7 +619,7 @@ class FlexData(UMP):
         return FLEX_DATA_BY_STATUS_BANK[status_bank].parse(
             words,
             group=(words[0] >> 24) & 0xF,
-            form=UMPStreamFormat((words[0] >> 22) & 0x3),
+            form=StreamFormat((words[0] >> 22) & 0x3),
             address=(words[0] >> 16) & 0x3F,
             channel=(words[0] >> 12) & 0xF,
             status=words[0] & 0xFF,
@@ -728,7 +732,7 @@ class UMPStream(UMP):
         START_OF_CLIP = 0x20
         END_OF_CLIP = 0x21
 
-    form: UMPStreamFormat
+    form: StreamFormat
     status: Status = field(init=False)
 
     def __post_init__(self):
@@ -736,7 +740,7 @@ class UMPStream(UMP):
 
     @classmethod
     def parse(cls, words, **kwargs):
-        form = UMPStreamFormat((words[0] >> 26) & 0x03)
+        form = StreamFormat((words[0] >> 26) & 0x03)
         status = UMPStream.Status((words[0] >> 16) & 0x3FF)
         return UMP_STREAM_BY_STATUS[status].parse(words, form=form, **kwargs)
 
@@ -753,6 +757,7 @@ class EndpointDiscovery(UMPStream):
         ENDPOINT_NAME_NOTIFICATION = 1 << 2
         PRODUCT_INSTANCE_ID_NOTIFICATION = 1 << 3
         STREAM_CONFIGURATION_NOTIFICATION = 1 << 4
+        ALL = 0x1F
 
     ump_version_major: int
     ump_version_minor: int
@@ -983,7 +988,13 @@ class StreamConfigurationNotification(UMPStream):
 
 @dataclass
 class FunctionBlockDiscovery(UMPStream):
-    function_block_filter: int
+    class Filter(IntFlag):
+        FUNCTION_BLOCK_INFO = 1 << 0
+        FUNCTION_BLOCK_NAME = 1 << 1
+        ALL = 0x03
+
+    block_num: int
+    filter: Filter
 
     def __post_init__(self):
         super().__post_init__()
@@ -992,13 +1003,14 @@ class FunctionBlockDiscovery(UMPStream):
     @classmethod
     def parse(cls, words, **kwargs):
         return cls(
-            function_block_filter=(words[0] >> 8) & 0xFF,
+            block_num=(words[0] >> 8) & 0xFF,
+            filter=words[0] & 0xFF,
             **kwargs,
         )
 
     def encode_into(self, words: list[int]) -> None:
         super().encode_into(words)
-        words[0] |= self.function_block_filter << 8
+        words[0] |= (self.block_num << 8) | self.filter
 
 
 @dataclass
