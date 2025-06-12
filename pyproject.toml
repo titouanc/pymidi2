@@ -3,7 +3,7 @@ name = "pymidi2"
 description = "A pure Python implementation of MIDI 2.0 (UMP)"
 readme = "README.md"
 dynamic = ["version"]
-requires-python = ">=3.10"
+requires-python = ">=3.11"
 dependencies = [
     "typing-extensions"
 ]
@@ -20,7 +20,7 @@ build-backend = "hatchling.build"
 source = "vcs"
 
 [tool.mypy]
-python_version = "3.10"
+python_version = "3.11"
 exclude = ["venv"]
 
 [tool.uv]
@@ -29,4 +29,28 @@ dev-dependencies = [
     "pytest-cov>=6.0.0",
     "pytest>=8.3.4",
     "ruff>=0.9.6",
+]
+
+[tool.ruff]
+target-version = "py311"
+
+[tool.ruff.lint]
+select = [
+    "A",    # flake8-builtins
+    "C4",   # flake8-comprehensions
+    "COM",  # flake8-commas
+    "E",    # pycodestyle errors
+    "F",    # pyflakes
+    "FA",   # flake-future-annotations
+    "I",    # isort
+    "N",    # pep8-naming
+    "NPY",  # numpy
+    "PIE",  # flake8-pie
+    "PTH",  # flake8-use-pathlib
+    "Q",    # flake8-quotes
+    "RUF",  # Ruff-specific rules
+    "SIM",  # flake8-simplify
+    "TC",   # type checking
+    "UP",   # pyupgrade
+    "W",    # pycodestyle warnings
 ]

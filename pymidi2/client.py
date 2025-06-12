@@ -3,12 +3,12 @@ import platform
 from uuid import uuid4
 
 from .core import (
-    CommandCode,
-    MIDISession,
-    CommandPacket,
-    UMPNetEndpoint,
-    SessionState,
     ClientCapability,
+    CommandCode,
+    CommandPacket,
+    MIDISession,
+    SessionState,
+    UMPNetEndpoint,
 )
 
 logger = logging.getLogger("pymidi2.client")

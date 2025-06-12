@@ -77,7 +77,7 @@ class CommandPacket:
         if len(payload) < payload_length:
             raise ValueError(
                 f"Expecting at least {payload_length} bytes of payload, "
-                f"but got only {len(payload)}"
+                f"but got only {len(payload)}",
             )
 
         res = cls(

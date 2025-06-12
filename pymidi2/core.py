@@ -8,11 +8,10 @@ See the specification https://drive.google.com/file/d/1dtsOgMLbtif9Fp-OaZhwnRs9a
 import logging
 import socket
 import struct
-from enum import Enum, IntEnum, IntFlag, auto
 from dataclasses import dataclass
+from enum import Enum, IntEnum, IntFlag, auto
 from math import ceil
-
-from typing_extensions import Self
+from typing import Self
 
 logger = logging.getLogger("pymidi2.core")
 
@@ -78,7 +77,7 @@ class CommandPacket:
         if (p := len(self.payload)) % 4:
             raise ValueError(
                 "Expected the payload length to be a multiple of 4 Bytes, "
-                f"but got {p} Bytes instead"
+                f"but got {p} Bytes instead",
             )
 
     @classmethod
@@ -90,7 +89,7 @@ class CommandPacket:
         if len(payload) < payload_length:
             raise ValueError(
                 f"Expecting at least {payload_length} bytes of payload, "
-                f"but got only {len(payload)}"
+                f"but got only {len(payload)}",
             )
 
         res = cls(
@@ -102,7 +101,7 @@ class CommandPacket:
 
     def __bytes__(self) -> bytes:
         res = struct.pack(
-            "!BBH", self.command, len(self.payload) // 4, self.specific_data
+            "!BBH", self.command, len(self.payload) // 4, self.specific_data,
         )
         return res + self.payload
 
@@ -153,7 +152,7 @@ class UMPNetEndpoint:
         logger.info(f"Bound to {self.bind_ip}:{self.bind_port}")
 
     def send(
-        self, addr_info: tuple[str, int], pkts: MIDIUDPPacket | list[CommandPacket]
+        self, addr_info: tuple[str, int], pkts: MIDIUDPPacket | list[CommandPacket],
     ):
         if not isinstance(pkts, MIDIUDPPacket):
             pkts = MIDIUDPPacket(commands=pkts)
@@ -173,8 +172,8 @@ class UMPNetEndpoint:
     ) -> CommandPacket:
         name = self.name.encode("utf-8")
         piid = self.product_instance_id.encode("ascii")
-        name_len = int(ceil(len(name) / 4))
-        piid_len = int(ceil(len(piid) / 4))
+        name_len = ceil(len(name) / 4)
+        piid_len = ceil(len(piid) / 4)
         name_padded = name.ljust(4 * name_len, b"\x00")
         piid_padded = piid.ljust(4 * piid_len, b"\x00")
 

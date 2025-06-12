@@ -1,7 +1,7 @@
 import logging
 import platform
 
-from .core import CommandCode, MIDISession, CommandPacket, UMPNetEndpoint, SessionState
+from .core import CommandCode, CommandPacket, MIDISession, SessionState, UMPNetEndpoint
 
 logger = logging.getLogger()
 
@@ -52,7 +52,7 @@ class MIDIHost(UMPNetEndpoint):
                 sess.remote = (remote_name, remote_piid)
 
                 reply = self.get_identity(
-                    as_command=CommandCode.INVITATION_REPLY_ACCEPTED
+                    as_command=CommandCode.INVITATION_REPLY_ACCEPTED,
                 )
                 self.send(addr_info, [reply])
                 sess.state = SessionState.ESTABLISHED_SESSION

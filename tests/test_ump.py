@@ -67,7 +67,7 @@ TEST_PACKETS = [
     pytest.param(
         [0x42C40001, 0x2A001344],
         ump.MIDI2ProgramChange(
-            group=2, channel=4, program=42, bank_valid=True, bank=2500
+            group=2, channel=4, program=42, bank_valid=True, bank=2500,
         ),
         id="midi2-program-change",
     ),
@@ -161,35 +161,35 @@ TEST_PACKETS = [
     pytest.param(
         [0xF003E282, 0xAC75726F, 0x7261636B, 0x00000000],
         ump.EndpointNameNotification(
-            form=ump.UMPStreamFormat.COMPLETE, name="€urorack"
+            form=ump.UMPStreamFormat.COMPLETE, name="€urorack",
         ),
         id="endpoint-name-notification",
     ),
     pytest.param(
         [0xF0044177, 0x65736F6D, 0x65207072, 0x6F640000],
         ump.ProductInstanceIdNotification(
-            form=ump.UMPStreamFormat.COMPLETE, product_instance_id="Awesome prod"
+            form=ump.UMPStreamFormat.COMPLETE, product_instance_id="Awesome prod",
         ),
         id="product-instance-id-notification",
     ),
     pytest.param(
         [0xF0050180, 0x00000000, 0x00000000, 0x00000000],
         ump.StreamConfigurationRequest(
-            form=ump.UMPStreamFormat.COMPLETE, protocol=1, extensions=True, reserved=0
+            form=ump.UMPStreamFormat.COMPLETE, protocol=1, extensions=True, reserved=0,
         ),
         id="stream-configuration-request",
     ),
     pytest.param(
         [0xF0060180, 0x00000000, 0x00000000, 0x00000000],
         ump.StreamConfigurationNotification(
-            form=ump.UMPStreamFormat.COMPLETE, protocol=1, extensions=True, reserved=0
+            form=ump.UMPStreamFormat.COMPLETE, protocol=1, extensions=True, reserved=0,
         ),
         id="stream-configuration-notification",
     ),
     pytest.param(
         [0xF0100100, 0x00000000, 0x00000000, 0x00000000],
         ump.FunctionBlockDiscovery(
-            form=ump.UMPStreamFormat.COMPLETE, function_block_filter=1, reserved=0
+            form=ump.UMPStreamFormat.COMPLETE, function_block_filter=1, reserved=0,
         ),
         id="function-block-discovery",
     ),
@@ -214,7 +214,7 @@ TEST_PACKETS = [
     pytest.param(
         [0xF0120148, 0x656C6C6F, 0x00000000, 0x00000000],
         ump.FunctionBlockNameNotification(
-            form=ump.UMPStreamFormat.COMPLETE, function_block_id=1, name="Hello"
+            form=ump.UMPStreamFormat.COMPLETE, function_block_id=1, name="Hello",
         ),
         id="function-block-name-notification",
     ),
