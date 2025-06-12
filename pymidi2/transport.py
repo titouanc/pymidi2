@@ -1,7 +1,8 @@
 import socket
 import struct
+from abc import abstractmethod
 from collections.abc import Sequence
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from pathlib import Path
 from typing import Self
 
@@ -11,14 +12,19 @@ from .ump import UMP, MessageType
 
 class Transport:
     @classmethod
+    @abstractmethod
     def list(cls) -> Sequence[Self]: ...
 
+    @abstractmethod
     def connect(self): ...
 
+    @abstractmethod
     def disconnect(self): ...
 
+    @abstractmethod
     def send(self, packet: UMP): ...
 
+    @abstractmethod
     def recv(self) -> UMP: ...
 
     def __enter__(self):
@@ -51,7 +57,7 @@ class ALSATransport(Transport):
         self.sendfd.write(encoded)
 
     def recv(self) -> UMP:
-        words = [struct.unpack("@I", self.recvfd.read(4))]
+        words = struct.unpack("@I", self.recvfd.read(4))
         mt = MessageType(words[0] >> 24)
         remaining = mt.num_words - 1
         if remaining:
@@ -77,7 +83,7 @@ class UDPTransport(Transport):
         raise NotImplementedError()
 
     def sendcmd(self, *commands: CommandPacket):
-        pkt = MIDIUDPPacket(commands)
+        pkt = MIDIUDPPacket(list(commands))
         self.sock.sendto(bytes(pkt), (self.peer_ip, self.peer_port))
 
     def recvcmd(self) -> Sequence[CommandPacket]:
@@ -127,8 +133,8 @@ class UDPTransport(Transport):
     def dispatch(self, cmd: CommandPacket):
         match cmd.command:
             case CommandCode.PING:
-                cmd.command = CommandCode.PING_REPLY
-                self.sendcmd(cmd)
+                reply = replace(cmd, command=CommandCode.PING_REPLY)
+                self.sendcmd(reply)
 
             case CommandCode.UMP_DATA:
                 words = [

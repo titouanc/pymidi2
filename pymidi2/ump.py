@@ -693,7 +693,7 @@ class FlexData(UMP):
             | (self.form << 22)
             | (self.address << 16)
             | (self.channel << 12)
-            | (self.status << 8)
+            | (self.status_bank << 8)
         )
 
 
@@ -708,6 +708,10 @@ class SetupAndPerformanceEvent(FlexData):
     def parse(cls, words, status, **kwargs):
         return cls(status=PerformanceEventStatus(status))
 
+    def encode_into(self, words: list[int]) -> None:
+        super().encode_into(words)
+        words[0] |= self.status
+
 
 @dataclass
 class MetadataText(FlexData):
@@ -720,6 +724,10 @@ class MetadataText(FlexData):
     def parse(cls, words, status, **kwargs):
         return cls(status=MetadataTextStatus(status))
 
+    def encode_into(self, words: list[int]) -> None:
+        super().encode_into(words)
+        words[0] |= self.status
+
 
 @dataclass
 class PerformanceTextEvent(FlexData):
@@ -731,6 +739,10 @@ class PerformanceTextEvent(FlexData):
     @classmethod
     def parse(cls, words, status, **kwargs):
         return cls(status=PerformanceTextStatus(status))
+
+    def encode_into(self, words: list[int]) -> None:
+        super().encode_into(words)
+        words[0] |= self.status
 
 
 # UMP Stream Messages (keeping your existing implementation)
@@ -830,10 +842,10 @@ class EndpointInfoNotification(UMPStream):
 
 @dataclass
 class DeviceIdentityNotification(UMPStream):
-    device_manufacturer: tuple[int]
+    device_manufacturer: tuple[int, int, int]
     device_family: int
     device_family_model: int
-    software_revision: tuple[int]
+    software_revision: tuple[int, int, int, int]
 
     def __post_init__(self):
         super().__post_init__()

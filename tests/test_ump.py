@@ -121,16 +121,21 @@ TEST_PACKETS = [
     ),
     # UMP Stream Messages
     pytest.param(
-        [0xF0000101, 0x0000001F, 0x00000000, 0x00000000],
+        [0xF0000101, 0x0000001C, 0x00000000, 0x00000000],
         ump.EndpointDiscovery(
-            form=0, ump_version_major=1, ump_version_minor=1, filter=0x1F
+            form=ump.UMPStreamFormat.COMPLETE,
+            ump_version_major=1,
+            ump_version_minor=1,
+            filter=ump.EndpointDiscoveryFilter.ENDPOINT_NAME_NOTIFICATION
+            | ump.EndpointDiscoveryFilter.PRODUCT_INSTANCE_ID_NOTIFICATION
+            | ump.EndpointDiscoveryFilter.STREAM_CONFIGURATION_NOTIFICATION,
         ),
         id="endpoint-discovery",
     ),
     pytest.param(
         [0xF0010101, 0x91000303, 0x00000000, 0x00000000],
         ump.EndpointInfoNotification(
-            form=0,
+            form=ump.UMPStreamFormat.COMPLETE,
             ump_version_major=1,
             ump_version_minor=1,
             static=True,
@@ -145,7 +150,7 @@ TEST_PACKETS = [
     pytest.param(
         [0xF0020000, 0x00000007, 0x01000200, 0x01020304],
         ump.DeviceIdentityNotification(
-            form=0,
+            form=ump.UMPStreamFormat.COMPLETE,
             device_manufacturer=(0, 0, 7),
             device_family=1,
             device_family_model=2,
@@ -155,40 +160,48 @@ TEST_PACKETS = [
     ),
     pytest.param(
         [0xF003E282, 0xAC75726F, 0x7261636B, 0x00000000],
-        ump.EndpointNameNotification(form=0, name="€urorack"),
+        ump.EndpointNameNotification(
+            form=ump.UMPStreamFormat.COMPLETE, name="€urorack"
+        ),
         id="endpoint-name-notification",
     ),
     pytest.param(
         [0xF0044177, 0x65736F6D, 0x65207072, 0x6F640000],
-        ump.ProductInstanceIdNotification(form=0, product_instance_id="Awesome prod"),
+        ump.ProductInstanceIdNotification(
+            form=ump.UMPStreamFormat.COMPLETE, product_instance_id="Awesome prod"
+        ),
         id="product-instance-id-notification",
     ),
     pytest.param(
         [0xF0050180, 0x00000000, 0x00000000, 0x00000000],
-        ump.StreamConfigurationRequest(form=0, protocol=1, extensions=True, reserved=0),
+        ump.StreamConfigurationRequest(
+            form=ump.UMPStreamFormat.COMPLETE, protocol=1, extensions=True, reserved=0
+        ),
         id="stream-configuration-request",
     ),
     pytest.param(
         [0xF0060180, 0x00000000, 0x00000000, 0x00000000],
         ump.StreamConfigurationNotification(
-            form=0, protocol=1, extensions=True, reserved=0
+            form=ump.UMPStreamFormat.COMPLETE, protocol=1, extensions=True, reserved=0
         ),
         id="stream-configuration-notification",
     ),
     pytest.param(
         [0xF0100100, 0x00000000, 0x00000000, 0x00000000],
-        ump.FunctionBlockDiscovery(form=0, function_block_filter=1, reserved=0),
+        ump.FunctionBlockDiscovery(
+            form=ump.UMPStreamFormat.COMPLETE, function_block_filter=1, reserved=0
+        ),
         id="function-block-discovery",
     ),
     pytest.param(
-        [0xF0118133, 0x01020004, 0x00000000, 0x00000000],
+        [0xF011813B, 0x01020004, 0x00000000, 0x00000000],
         ump.FunctionBlockInfoNotification(
-            form=0,
-            active=1,
+            form=ump.UMPStreamFormat.COMPLETE,
+            active=True,
             function_block_id=1,
             ui_hint_output=True,
             ui_hint_input=True,
-            midi1=0,
+            midi1=ump.MIDI1Mode.MIDI1_RESTRICT_BANDWITH,
             is_input=True,
             is_output=True,
             first_group=1,
@@ -200,17 +213,19 @@ TEST_PACKETS = [
     ),
     pytest.param(
         [0xF0120148, 0x656C6C6F, 0x00000000, 0x00000000],
-        ump.FunctionBlockNameNotification(form=0, function_block_id=1, name="Hello"),
+        ump.FunctionBlockNameNotification(
+            form=ump.UMPStreamFormat.COMPLETE, function_block_id=1, name="Hello"
+        ),
         id="function-block-name-notification",
     ),
     pytest.param(
         [0xF0200000, 0x00000000, 0x00000000, 0x00000000],
-        ump.StartOfClip(form=0, reserved=0),
+        ump.StartOfClip(form=ump.UMPStreamFormat.COMPLETE, reserved=0),
         id="start-of-clip",
     ),
     pytest.param(
         [0xF0210000, 0x00000000, 0x00000000, 0x00000000],
-        ump.EndOfClip(form=0, reserved=0),
+        ump.EndOfClip(form=ump.UMPStreamFormat.COMPLETE, reserved=0),
         id="end-of-clip",
     ),
 ]
