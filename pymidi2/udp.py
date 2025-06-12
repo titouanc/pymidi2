@@ -89,7 +89,10 @@ class CommandPacket:
 
     def __bytes__(self) -> bytes:
         res = struct.pack(
-            "!BBH", self.command, len(self.payload) // 4, self.specific_data,
+            "!BBH",
+            self.command,
+            len(self.payload) // 4,
+            self.specific_data,
         )
         return res + self.payload
 

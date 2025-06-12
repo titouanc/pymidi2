@@ -11,20 +11,15 @@ from .ump import UMP, MessageType
 
 class Transport:
     @classmethod
-    def list(cls) -> Sequence[Self]:
-        ...
+    def list(cls) -> Sequence[Self]: ...
 
-    def connect(self):
-        ...
+    def connect(self): ...
 
-    def disconnect(self):
-        ...
+    def disconnect(self): ...
 
-    def send(self, packet: UMP):
-        ...
+    def send(self, packet: UMP): ...
 
-    def recv(self) -> UMP:
-        ...
+    def recv(self) -> UMP: ...
 
     def __enter__(self):
         self.connect()
@@ -52,7 +47,7 @@ class ALSATransport(Transport):
 
     def send(self, packet: UMP):
         words = packet.encode()
-        encoded = struct.pack("@" + len(words)*"I", *words)
+        encoded = struct.pack("@" + len(words) * "I", *words)
         self.sendfd.write(encoded)
 
     def recv(self) -> UMP:
@@ -61,7 +56,7 @@ class ALSATransport(Transport):
         remaining = mt.num_words - 1
         if remaining:
             words += struct.unpack(
-                "@" + "I"*remaining,
+                "@" + "I" * remaining,
                 self.recvfd.read(4 * remaining),
             )
         return UMP.parse(words)
@@ -119,7 +114,7 @@ class UDPTransport(Transport):
 
     def send(self, packet: UMP):
         words = packet.encode()
-        encoded = struct.pack(">" + len(words)*"I", *words)
+        encoded = struct.pack(">" + len(words) * "I", *words)
         self.sendcmd(
             CommandPacket(
                 command=CommandCode.UMP_DATA,
@@ -137,7 +132,7 @@ class UDPTransport(Transport):
 
             case CommandCode.UMP_DATA:
                 words = [
-                    int.from_bytes(cmd.payload[4*i:4*(i+1)], byteorder="big")
+                    int.from_bytes(cmd.payload[4 * i : 4 * (i + 1)], byteorder="big")
                     for i in range(len(cmd.payload) // 4)
                 ]
                 self.rx_queue.append(UMP.parse(words))
@@ -148,9 +143,10 @@ class UDPTransport(Transport):
                 self.dispatch(cmd)
         return self.rx_queue.pop(0)
 
+
 if __name__ == "__main__":
     with UDPTransport("127.0.0.1", 5673) as t:
-        t.send(UMP.parse([0x2294407f]))
+        t.send(UMP.parse([0x2294407F]))
         t.send(UMP.parse([0x42944000, 0x12345678]))
         for _ in range(2):
             print(t.recv())
