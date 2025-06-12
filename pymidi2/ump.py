@@ -962,7 +962,6 @@ class ProductInstanceIdNotification(UMPStream):
 class StreamConfigurationRequest(UMPStream):
     protocol: int
     extensions: bool
-    reserved: int
 
     def __post_init__(self):
         super().__post_init__()
@@ -973,22 +972,18 @@ class StreamConfigurationRequest(UMPStream):
         return cls(
             protocol=(words[0] >> 8) & 0xFF,
             extensions=bool(words[0] & (1 << 7)),
-            reserved=words[0] & 0x7F,
             **kwargs,
         )
 
     def encode_into(self, words: list[int]) -> None:
         super().encode_into(words)
-        words[0] |= (
-            (self.protocol << 8) | (self.extensions << 7) | (self.reserved & 0x7F)
-        )
+        words[0] |= (self.protocol << 8) | (self.extensions << 7)
 
 
 @dataclass
 class StreamConfigurationNotification(UMPStream):
     protocol: int
     extensions: bool
-    reserved: int
 
     def __post_init__(self):
         super().__post_init__()
@@ -999,21 +994,17 @@ class StreamConfigurationNotification(UMPStream):
         return cls(
             protocol=(words[0] >> 8) & 0xFF,
             extensions=bool(words[0] & (1 << 7)),
-            reserved=words[0] & 0x7F,
             **kwargs,
         )
 
     def encode_into(self, words: list[int]) -> None:
         super().encode_into(words)
-        words[0] |= (
-            (self.protocol << 8) | (self.extensions << 7) | (self.reserved & 0x7F)
-        )
+        words[0] |= (self.protocol << 8) | (self.extensions << 7)
 
 
 @dataclass
 class FunctionBlockDiscovery(UMPStream):
     function_block_filter: int
-    reserved: int
 
     def __post_init__(self):
         super().__post_init__()
@@ -1023,13 +1014,12 @@ class FunctionBlockDiscovery(UMPStream):
     def parse(cls, words, **kwargs):
         return cls(
             function_block_filter=(words[0] >> 8) & 0xFF,
-            reserved=words[0] & 0xFF,
             **kwargs,
         )
 
     def encode_into(self, words: list[int]) -> None:
         super().encode_into(words)
-        words[0] |= (self.function_block_filter << 8) | self.reserved
+        words[0] |= (self.function_block_filter << 8)
 
 
 class MIDI1Mode(IntEnum):
@@ -1149,7 +1139,6 @@ class FunctionBlockNameNotification(UMPStream):
 
 @dataclass
 class StartOfClip(UMPStream):
-    reserved: int
 
     def __post_init__(self):
         super().__post_init__()
@@ -1157,16 +1146,11 @@ class StartOfClip(UMPStream):
 
     @classmethod
     def parse(cls, words, **kwargs):
-        return cls(reserved=words[0] & 0xFFFF, **kwargs)
-
-    def encode_into(self, words: list[int]) -> None:
-        super().encode_into(words)
-        words[0] |= self.reserved & 0xFFFF
+        return cls(**kwargs)
 
 
 @dataclass
 class EndOfClip(UMPStream):
-    reserved: int
 
     def __post_init__(self):
         super().__post_init__()
@@ -1174,11 +1158,7 @@ class EndOfClip(UMPStream):
 
     @classmethod
     def parse(cls, words, **kwargs):
-        return cls(reserved=words[0] & 0xFFFF, **kwargs)
-
-    def encode_into(self, words: list[int]) -> None:
-        super().encode_into(words)
-        words[0] |= self.reserved & 0xFFFF
+        return cls(**kwargs)
 
 
 # Lookup tables

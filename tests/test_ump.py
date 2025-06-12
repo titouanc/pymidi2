@@ -184,7 +184,6 @@ TEST_PACKETS = [
             form=ump.UMPStreamFormat.COMPLETE,
             protocol=1,
             extensions=True,
-            reserved=0,
         ),
         id="stream-configuration-request",
     ),
@@ -194,7 +193,6 @@ TEST_PACKETS = [
             form=ump.UMPStreamFormat.COMPLETE,
             protocol=1,
             extensions=True,
-            reserved=0,
         ),
         id="stream-configuration-notification",
     ),
@@ -203,7 +201,6 @@ TEST_PACKETS = [
         ump.FunctionBlockDiscovery(
             form=ump.UMPStreamFormat.COMPLETE,
             function_block_filter=1,
-            reserved=0,
         ),
         id="function-block-discovery",
     ),
@@ -236,12 +233,12 @@ TEST_PACKETS = [
     ),
     pytest.param(
         [0xF0200000, 0x00000000, 0x00000000, 0x00000000],
-        ump.StartOfClip(form=ump.UMPStreamFormat.COMPLETE, reserved=0),
+        ump.StartOfClip(form=ump.UMPStreamFormat.COMPLETE),
         id="start-of-clip",
     ),
     pytest.param(
         [0xF0210000, 0x00000000, 0x00000000, 0x00000000],
-        ump.EndOfClip(form=ump.UMPStreamFormat.COMPLETE, reserved=0),
+        ump.EndOfClip(form=ump.UMPStreamFormat.COMPLETE),
         id="end-of-clip",
     ),
 ]
