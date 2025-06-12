@@ -1019,7 +1019,7 @@ class FunctionBlockDiscovery(UMPStream):
 
     def encode_into(self, words: list[int]) -> None:
         super().encode_into(words)
-        words[0] |= (self.function_block_filter << 8)
+        words[0] |= self.function_block_filter << 8
 
 
 class MIDI1Mode(IntEnum):
@@ -1139,7 +1139,6 @@ class FunctionBlockNameNotification(UMPStream):
 
 @dataclass
 class StartOfClip(UMPStream):
-
     def __post_init__(self):
         super().__post_init__()
         self.status = UMPStreamStatus.START_OF_CLIP
@@ -1151,7 +1150,6 @@ class StartOfClip(UMPStream):
 
 @dataclass
 class EndOfClip(UMPStream):
-
     def __post_init__(self):
         super().__post_init__()
         self.status = UMPStreamStatus.END_OF_CLIP
