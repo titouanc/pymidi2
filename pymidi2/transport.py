@@ -45,20 +45,19 @@ class ALSATransport(Transport):
 
     def connect(self):
         self.recvfd = self.location.open("rb")
-        self.sendfd = self.location.open("wb")
 
     def disconnect(self):
-        self.sendfd.close()
         self.recvfd.close()
 
     def send(self, packet: UMP):
         words = packet.encode()
         encoded = struct.pack("@" + len(words) * "I", *words)
-        self.sendfd.write(encoded)
+        with self.location.open("wb") as fd:
+            fd.write(encoded)
 
     def recv(self) -> UMP:
         words = struct.unpack("@I", self.recvfd.read(4))
-        mt = MessageType(words[0] >> 24)
+        mt = MessageType(words[0] >> 28)
         remaining = mt.num_words - 1
         if remaining:
             words += struct.unpack(
