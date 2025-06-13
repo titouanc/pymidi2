@@ -153,11 +153,3 @@ class UDPTransport(Transport):
             for cmd in self.recvcmd():
                 self.dispatch(cmd)
         return self.rx_queue.pop(0)
-
-
-if __name__ == "__main__":
-    with UDPTransport("127.0.0.1", 5673) as t:
-        t.send(UMP.parse([0x2294407F]))
-        t.send(UMP.parse([0x42944000, 0x12345678]))
-        for _ in range(2):
-            print(t.recv())

@@ -28,7 +28,8 @@ class UMPEndpoint:
             if self.function_blocks is not None:
                 return
             self.function_blocks = cast(
-                "list[FunctionBlock | None]", pkt.n_function_blocks * [None],
+                "list[FunctionBlock | None]",
+                pkt.n_function_blocks * [None],
             )
 
         elif isinstance(pkt, ump.EndpointNameNotification):
@@ -87,12 +88,11 @@ class UMPEndpoint:
 
 if __name__ == "__main__":
     import logging
-    logging.basicConfig(level=logging.DEBUG)
-
     from pprint import pprint
 
+    logging.basicConfig(level=logging.DEBUG)
+
     with ALSATransport.list()[0] as t:
-    # with UDPTransport("localhost", 5673) as t:
         ep = UMPEndpoint(t)
         ep.discover()
         pprint(ep)
