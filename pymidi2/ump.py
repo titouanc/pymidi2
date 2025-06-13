@@ -41,6 +41,10 @@ class StreamFormat(IntEnum):
     def is_starting(self):
         return self in {self.COMPLETE, self.START}
 
+    @property
+    def is_ending(self):
+        return self in {self.COMPLETE, self.END}
+
 
 @dataclass
 class UMP:

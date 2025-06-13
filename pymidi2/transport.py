@@ -7,7 +7,7 @@ from logging import getLogger
 from pathlib import Path
 from typing import Self
 
-from .udp import ClientCapability, CommandCode, CommandPacket, MIDIUDPPacket
+from . import udp
 from .ump import UMP, MessageType
 
 logger = getLogger(__name__)
@@ -81,67 +81,71 @@ class UDPTransport(Transport):
     bind_port: int = 0
     tx_seq: int = 0
     rx_queue: list[UMP] = field(default_factory=list)
+    connected: bool = False
 
     @classmethod
     def list(cls) -> Sequence[Self]:
         # TODO: mdns discovery
         raise NotImplementedError()
 
-    def sendcmd(self, *commands: CommandPacket):
-        pkt = MIDIUDPPacket(list(commands))
+    def sendcmd(self, *commands: udp.CommandPacket):
+        pkt = udp.MIDIUDPPacket(list(commands))
         self.sock.sendto(bytes(pkt), (self.peer_ip, self.peer_port))
+        logger.debug(f"Tx {pkt!r}")
 
-    def recvcmd(self) -> Sequence[CommandPacket]:
+    def recvcmd(self) -> Sequence[udp.CommandPacket]:
         while True:
             buf, addr_info = self.sock.recvfrom(1500)
             if addr_info != (self.peer_ip, self.peer_port):
                 continue
-            pkt = MIDIUDPPacket.parse(buf)
+            pkt = udp.MIDIUDPPacket.parse(buf)
+            logger.debug(f"Rx {pkt!r}")
             return pkt.commands
 
     def connect(self):
+        self.connected = False
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         self.sock.bind(("0.0.0.0", 0))
         self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
 
         # 1. Send invitation packet
         self.sendcmd(
-            CommandPacket(
-                command=CommandCode.INVITATION,
-                specific_data=ClientCapability.NONE,
+            udp.CommandPacket(
+                command=udp.CommandCode.INVITATION,
+                specific_data=udp.ClientCapability.NONE,
                 payload=b"",
             ),
         )
 
         # 2. Wait for invitation reply
-        connected = False
-        while not connected:
+        while not self.connected:
             for cmd in self.recvcmd():
-                if cmd.command is CommandCode.INVITATION_REPLY_ACCEPTED:
-                    connected = True
+                if cmd.command is udp.CommandCode.INVITATION_REPLY_ACCEPTED:
+                    self.connected = True
 
     def disconnect(self):
+        self.connected = False
         self.sock.close()
 
     def send(self, packet: UMP):
         words = packet.encode()
         encoded = struct.pack(">" + len(words) * "I", *words)
         self.sendcmd(
-            CommandPacket(
-                command=CommandCode.UMP_DATA,
+            udp.CommandPacket(
+                command=udp.CommandCode.UMP_DATA,
                 specific_data=self.tx_seq,
                 payload=encoded,
             ),
         )
         self.tx_seq += 1
 
-    def dispatch(self, cmd: CommandPacket):
+    def dispatch(self, cmd: udp.CommandPacket):
         match cmd.command:
-            case CommandCode.PING:
-                reply = replace(cmd, command=CommandCode.PING_REPLY)
+            case udp.CommandCode.PING:
+                reply = replace(cmd, command=udp.CommandCode.PING_REPLY)
                 self.sendcmd(reply)
 
-            case CommandCode.UMP_DATA:
+            case udp.CommandCode.UMP_DATA:
                 words = [
                     int.from_bytes(cmd.payload[4 * i : 4 * (i + 1)], byteorder="big")
                     for i in range(len(cmd.payload) // 4)

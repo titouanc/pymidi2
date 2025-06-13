@@ -20,6 +20,7 @@ class FunctionBlock:
     midi1: bool
     restrict_31_25kbps: bool
     name: str | None = None
+    _name_complete: bool = False
 
     @classmethod
     def from_info(cls, pkt: ump.FunctionBlockInfoNotification) -> Self:
@@ -56,6 +57,7 @@ class UMPEndpoint:
     transport: Transport
     function_blocks: list[FunctionBlock | None] = field(default_factory=list)
     name: str | None = None
+    _name_complete: bool = False
 
     def expect(self, pkt_type: type[ump.UMP]) -> ump.UMP:
         while True:
@@ -75,9 +77,12 @@ class UMPEndpoint:
         elif isinstance(pkt, ump.EndpointNameNotification):
             if pkt.form.is_starting:
                 self.name = ""
+                self._name_complete = False
             if self.name is None:
                 return
             self.name += pkt.name
+            if pkt.form.is_ending:
+                self._name_complete = True
 
         elif isinstance(pkt, ump.FunctionBlockInfoNotification):
             if pkt.function_block_id >= len(self.function_blocks):
@@ -98,9 +103,18 @@ class UMPEndpoint:
             if block := self.function_blocks[pkt.function_block_id]:
                 if pkt.form.is_starting:
                     block.name = ""
+                    block._name_complete = False
                 if block.name is None:
                     return
                 block.name += pkt.name
+                if pkt.form.is_ending:
+                    block._name_complete = True
+
+    @property
+    def has_all_names(self) -> bool:
+        return self._name_complete and all(
+            f is not None and f._name_complete for f in self.function_blocks
+        )
 
     def discover(self, wait_for_all_names: bool = True) -> None:
         self.function_blocks = []
@@ -130,7 +144,7 @@ class UMPEndpoint:
             self.dispatch(self.transport.recv())
 
         if wait_for_all_names:
-            while not all(f is not None and f.name for f in self.function_blocks):
+            while not self.has_all_names:
                 self.dispatch(self.transport.recv())
 
 
