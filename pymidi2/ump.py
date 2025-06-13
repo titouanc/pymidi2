@@ -1016,10 +1016,18 @@ class FunctionBlockInfoNotification(UMPStream):
         MIDI1 = 0x01
         MIDI1_RESTRICT_BANDWITH = 0x02
 
+        @property
+        def is_midi1(self):
+            return self in {self.MIDI1, self.MIDI1_RESTRICT_BANDWITH}
+
+        @property
+        def is_restricted_31_25kbps(self):
+            return self is self.MIDI1_RESTRICT_BANDWITH
+
     active: bool
     function_block_id: int
-    ui_hint_output: bool
-    ui_hint_input: bool
+    ui_hint_sender: bool
+    ui_hint_receiver: bool
     midi1: MIDI1Mode
     is_output: bool
     is_input: bool
@@ -1037,8 +1045,8 @@ class FunctionBlockInfoNotification(UMPStream):
         return cls(
             active=bool((words[0] >> 15) & 1),
             function_block_id=(words[0] >> 8) & 0x7F,
-            ui_hint_output=bool((words[0] >> 5) & 1),
-            ui_hint_input=bool((words[0] >> 4) & 1),
+            ui_hint_sender=bool((words[0] >> 5) & 1),
+            ui_hint_receiver=bool((words[0] >> 4) & 1),
             midi1=cls.MIDI1Mode((words[0] >> 2) & 0x03),
             is_output=bool((words[0] >> 1) & 1),
             is_input=bool(words[0] & 1),
@@ -1054,8 +1062,8 @@ class FunctionBlockInfoNotification(UMPStream):
         words[0] |= (
             (self.active << 15)
             | (self.function_block_id << 8)
-            | (self.ui_hint_output << 5)
-            | (self.ui_hint_input << 4)
+            | (self.ui_hint_sender << 5)
+            | (self.ui_hint_receiver << 4)
             | (self.midi1 << 2)
             | (self.is_output << 1)
             | self.is_input

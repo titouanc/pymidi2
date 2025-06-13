@@ -1,20 +1,60 @@
-from dataclasses import dataclass
-from typing import cast
+import logging
+from dataclasses import dataclass, field
+from typing import Self, cast
 
 from . import ump
 from .transport import ALSATransport, Transport
 
+logger = logging.getLogger(__name__)
+
 
 @dataclass
 class FunctionBlock:
-    info: ump.FunctionBlockInfoNotification
+    _id: int
+    active: bool
+    groups: set[int]
+    is_output: bool
+    is_input: bool
+    ui_hint_sender: bool
+    ui_hint_receiver: bool
+    midi1: bool
+    restrict_31_25kbps: bool
     name: str | None = None
+
+    @classmethod
+    def from_info(cls, pkt: ump.FunctionBlockInfoNotification) -> Self:
+        return cls(
+            _id=pkt.function_block_id,
+            active=pkt.active,
+            groups=set(range(pkt.first_group, pkt.first_group + pkt.number_of_groups)),
+            is_output=pkt.is_output,
+            is_input=pkt.is_input,
+            ui_hint_sender=pkt.ui_hint_sender,
+            ui_hint_receiver=pkt.ui_hint_receiver,
+            midi1=pkt.midi1.is_midi1,
+            restrict_31_25kbps=pkt.midi1.is_restricted_31_25kbps,
+        )
+
+    def __str__(self) -> str:
+        direction = f"{'i' if self.is_input else '-'}{'o' if self.is_output else '-'}"
+        role = "----"
+        if self.ui_hint_sender and self.ui_hint_receiver:
+            role = "RxTx"
+        elif self.ui_hint_sender:
+            role = "  Tx"
+        elif self.ui_hint_receiver:
+            role = "Rx  "
+
+        return (
+            f"- Block #{self._id} [{direction} : {role}] "
+            f"'{self.name}' UMP groups {self.groups}"
+        )
 
 
 @dataclass
 class UMPEndpoint:
     transport: Transport
-    function_blocks: list[FunctionBlock | None] | None = None
+    function_blocks: list[FunctionBlock | None] = field(default_factory=list)
     name: str | None = None
 
     def expect(self, pkt_type: type[ump.UMP]) -> ump.UMP:
@@ -25,7 +65,7 @@ class UMPEndpoint:
 
     def dispatch(self, pkt: ump.UMP) -> None:
         if isinstance(pkt, ump.EndpointInfoNotification):
-            if self.function_blocks is not None:
+            if self.function_blocks:
                 return
             self.function_blocks = cast(
                 "list[FunctionBlock | None]",
@@ -40,12 +80,20 @@ class UMPEndpoint:
             self.name += pkt.name
 
         elif isinstance(pkt, ump.FunctionBlockInfoNotification):
-            if self.function_blocks is None:
+            if pkt.function_block_id >= len(self.function_blocks):
+                logger.warning(
+                    f"Receiving info for Block #{pkt.function_block_id} "
+                    f"but I only know about {len(self.function_blocks)} of them",
+                )
                 return
-            self.function_blocks[pkt.function_block_id] = FunctionBlock(pkt)
+            self.function_blocks[pkt.function_block_id] = FunctionBlock.from_info(pkt)
 
         elif isinstance(pkt, ump.FunctionBlockNameNotification):
-            if self.function_blocks is None:
+            if pkt.function_block_id >= len(self.function_blocks):
+                logger.warning(
+                    f"Receiving name for Block #{pkt.function_block_id} "
+                    f"but I only know about {len(self.function_blocks)} of them",
+                )
                 return
             if block := self.function_blocks[pkt.function_block_id]:
                 if pkt.form.is_starting:
@@ -54,8 +102,8 @@ class UMPEndpoint:
                     return
                 block.name += pkt.name
 
-    def discover(self) -> None:
-        self.function_blocks = None
+    def discover(self, wait_for_all_names: bool = True) -> None:
+        self.function_blocks = []
         self.name = None
 
         self.transport.send(
@@ -66,7 +114,7 @@ class UMPEndpoint:
             ),
         )
 
-        while self.function_blocks is None:
+        while not self.function_blocks:
             self.dispatch(self.transport.recv())
 
         for i in range(len(self.function_blocks)):
@@ -81,18 +129,16 @@ class UMPEndpoint:
         while not all(self.function_blocks):
             self.dispatch(self.transport.recv())
 
-        if self.function_blocks[0].name:
-            while not all(f.name for f in self.function_blocks):
+        if wait_for_all_names:
+            while not all(f is not None and f.name for f in self.function_blocks):
                 self.dispatch(self.transport.recv())
 
 
 if __name__ == "__main__":
-    import logging
-    from pprint import pprint
-
-    logging.basicConfig(level=logging.DEBUG)
-
     with ALSATransport.list()[0] as t:
         ep = UMPEndpoint(t)
         ep.discover()
-        pprint(ep)
+
+        print(f"UMP Endpoint '{ep.name}'")
+        for fb in ep.function_blocks:
+            print(str(fb))
