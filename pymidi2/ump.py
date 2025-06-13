@@ -759,8 +759,7 @@ class EndpointDiscovery(UMPStream):
         STREAM_CONFIGURATION_NOTIFICATION = 1 << 4
         ALL = 0x1F
 
-    ump_version_major: int
-    ump_version_minor: int
+    ump_version: tuple[int, int]
     filter: Filter
 
     def __post_init__(self):
@@ -770,22 +769,20 @@ class EndpointDiscovery(UMPStream):
     @classmethod
     def parse(cls, words, **kwargs):
         return cls(
-            ump_version_major=(words[0] >> 8) & 0xFF,
-            ump_version_minor=words[0] & 0xFF,
+            ump_version=((words[0] >> 8) & 0xFF, words[0] & 0xFF),
             filter=cls.Filter(words[1] & 0x1F),
             **kwargs,
         )
 
     def encode_into(self, words: list[int]) -> None:
         super().encode_into(words)
-        words[0] |= (self.ump_version_major << 8) | self.ump_version_minor
+        words[0] |= (self.ump_version[0] << 8) | self.ump_version[1]
         words[1] |= self.filter
 
 
 @dataclass
 class EndpointInfoNotification(UMPStream):
-    ump_version_major: int
-    ump_version_minor: int
+    ump_version: tuple[int, int]
     static: bool
     n_function_blocks: int
     midi2: bool
@@ -800,8 +797,7 @@ class EndpointInfoNotification(UMPStream):
     @classmethod
     def parse(cls, words, **kwargs):
         return cls(
-            ump_version_major=(words[0] >> 8) & 0xFF,
-            ump_version_minor=words[0] & 0xFF,
+            ump_version=((words[0] >> 8) & 0xFF, words[0] & 0xFF),
             static=bool(words[1] & (1 << 31)),
             n_function_blocks=(words[1] >> 24) & 0x7F,
             midi2=bool(words[1] & (1 << 9)),
@@ -813,7 +809,7 @@ class EndpointInfoNotification(UMPStream):
 
     def encode_into(self, words: list[int]) -> None:
         super().encode_into(words)
-        words[0] |= (self.ump_version_major << 8) | self.ump_version_minor
+        words[0] |= (self.ump_version[0] << 8) | self.ump_version[1]
         words[1] |= (
             (self.static << 31)
             | (self.n_function_blocks << 24)

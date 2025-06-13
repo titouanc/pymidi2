@@ -128,8 +128,7 @@ TEST_PACKETS = [
         [0xF0000101, 0x0000001C, 0x00000000, 0x00000000],
         ump.EndpointDiscovery(
             form=ump.StreamFormat.COMPLETE,
-            ump_version_major=1,
-            ump_version_minor=1,
+            ump_version=(1, 1),
             filter=ump.EndpointDiscovery.Filter.ENDPOINT_NAME_NOTIFICATION
             | ump.EndpointDiscovery.Filter.PRODUCT_INSTANCE_ID_NOTIFICATION
             | ump.EndpointDiscovery.Filter.STREAM_CONFIGURATION_NOTIFICATION,
@@ -140,8 +139,7 @@ TEST_PACKETS = [
         [0xF0010101, 0x91000303, 0x00000000, 0x00000000],
         ump.EndpointInfoNotification(
             form=ump.StreamFormat.COMPLETE,
-            ump_version_major=1,
-            ump_version_minor=1,
+            ump_version=(1, 1),
             static=True,
             n_function_blocks=17,
             midi1=True,

@@ -60,8 +60,7 @@ class UMPEndpoint:
         self.transport.send(
             ump.EndpointDiscovery(
                 form=ump.StreamFormat.COMPLETE,
-                ump_version_major=1,
-                ump_version_minor=1,
+                ump_version=(1, 1),
                 filter=ump.EndpointDiscovery.Filter.ALL,
             ),
         )
