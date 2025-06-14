@@ -113,7 +113,6 @@ class UDPTransport(Transport):
             udp.CommandPacket(
                 command=udp.CommandCode.INVITATION,
                 specific_data=udp.ClientCapability.NONE,
-                payload=b"",
             ),
         )
 
@@ -124,6 +123,17 @@ class UDPTransport(Transport):
                     self.connected = True
 
     def disconnect(self):
+        self.sendcmd(
+            udp.CommandPacket(
+                command=udp.CommandCode.BYE,
+                specific_data=(
+                    udp.ByeReason.USER_TERMINATED
+                    if self.connected
+                    else udp.ByeReason.INVITATION_CANCELED
+                )
+                << 8,
+            ),
+        )
         self.connected = False
         self.sock.close()
 

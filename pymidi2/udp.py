@@ -51,6 +51,27 @@ class CommandCode(IntEnum):
     UMP_DATA = 0xFF
 
 
+class ByeReason(IntEnum):
+    # Sent by either Client or Host
+    UNKNOWN = 0x00
+    USER_TERMINATED = 0x01
+    POWER_DOWN = 0x02
+    TOO_MANY_MISSING_UMP = 0x03
+    TIMEOUT = 0x04
+    SESSION_NOT_ESTABLISHED = 0x05
+    NO_PENDING_SESSION = 0x04
+    PROTOCOL_ERROR = 0x07
+    # Sent from Host to Client
+    TOO_MANY_OPENED_SESSIONS = 0x40
+    INVITATION_WITH_AUTH_REJECTED = 0x41
+    INVITATION_REJECTED_NOT_ACCEPTED = 0x42
+    INVITATION_REJECTED_AUTH_FAILED = 0x43
+    INVITATION_REJECTED_USER_NOT_FOUND = 0x44
+    NO_MATCHING_AUTH_METHOD = 0x45
+    # Sent from Client to Host
+    INVITATION_CANCELLED = 0x80
+
+
 @dataclass(frozen=True)
 class CommandPacket:
     """
