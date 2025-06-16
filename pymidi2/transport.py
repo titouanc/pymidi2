@@ -3,6 +3,7 @@ import struct
 from abc import abstractmethod
 from collections.abc import Sequence
 from dataclasses import dataclass, field, replace
+from hashlib import sha256
 from logging import getLogger
 from pathlib import Path
 from typing import Self
@@ -82,6 +83,7 @@ class UDPTransport(Transport):
     tx_seq: int = 0
     rx_queue: list[UMP] = field(default_factory=list)
     connected: bool = False
+    auth: None | str | tuple[str, str] = None
 
     @classmethod
     def list(cls) -> Sequence[Self]:
@@ -102,6 +104,25 @@ class UDPTransport(Transport):
             logger.debug(f"Rx {pkt!r}")
             return pkt.commands
 
+    def check_invitation(self, cmd: udp.CommandPacket) -> None:
+        match cmd.command:
+            case udp.CommandCode.INVITATION_REPLY_ACCEPTED:
+                logger.info(f"Invitation to {self.peer_ip}:{self.peer_port} accepted")
+                self.connected = True
+            case udp.CommandCode.INVITATION_REPLY_AUTH_REQUIRED:
+                if not isinstance(self.auth, str):
+                    raise PermissionError()
+
+                auth = sha256(cmd.payload + self.auth.encode())
+                logger.info(f"Shared secret auth to {self.peer_ip}:{self.peer_port}")
+                print(cmd.payload + self.auth.encode())
+                self.sendcmd(
+                    udp.CommandPacket(
+                        command=udp.CommandCode.INVITATION_WITH_AUTH,
+                        payload=auth.digest(),
+                    ),
+                )
+
     def connect(self):
         self.connected = False
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -119,8 +140,8 @@ class UDPTransport(Transport):
         # 2. Wait for invitation reply
         while not self.connected:
             for cmd in self.recvcmd():
-                if cmd.command is udp.CommandCode.INVITATION_REPLY_ACCEPTED:
-                    self.connected = True
+                self.check_invitation(cmd)
+
 
     def disconnect(self):
         self.sendcmd(

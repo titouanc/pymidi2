@@ -65,12 +65,6 @@ class UMPEndpoint:
     name: str | None = None
     _name_complete: bool = False
 
-    def expect(self, pkt_type: type[ump.UMP]) -> ump.UMP:
-        while True:
-            pkt = self.transport.recv()
-            if isinstance(pkt, pkt_type):
-                return pkt
-
     def dispatch(self, pkt: ump.UMP) -> None:
         if isinstance(pkt, ump.EndpointInfoNotification):
             if self.function_blocks:
