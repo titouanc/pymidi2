@@ -5,6 +5,7 @@ from pathlib import Path
 from typing import Self
 
 # See https://ccrma.stanford.edu/~craig/14q/midifile/MidiFileFormat.html
+# also https://www.blitter.com/~russtopia/MIDI/~jglatt/tech/midifile.htm
 
 MIDI1_EVLEN = {
     0x80: 3,  # Note off
