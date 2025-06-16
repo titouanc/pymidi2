@@ -46,9 +46,15 @@ class FunctionBlock:
         elif self.ui_hint_receiver:
             role = "Rx  "
 
+        limitation = "[MIDI1 + MIDI2]"
+        if self.midi1 and self.restrict_31_25kbps:
+            limitation = "[MIDI1 31.25kb/s]"
+        elif self.midi1:
+            limitation = "[MIDI1 only]"
+
         return (
             f"- Block #{self._id} [{direction} : {role}] "
-            f"'{self.name}' UMP groups {self.groups}"
+            f"'{self.name}' UMP groups {self.groups} {limitation}"
         )
 
 
