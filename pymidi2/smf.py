@@ -1,5 +1,7 @@
 import struct
 from dataclasses import dataclass
+from enum import IntEnum
+from pathlib import Path
 from typing import Self
 
 # See https://ccrma.stanford.edu/~craig/14q/midifile/MidiFileFormat.html
@@ -51,11 +53,11 @@ class Event:
         t, data = get_varint(data)
 
         if data[0] == 0xFF:
-            meta_type = data[1]
+            metatype = data[1]
             evlen, data = get_varint(data[2:])
             meta_event = MetaEvent(
                 delta_time=t,
-                meta_type=meta_type,
+                meta_type=MetaEvent.MetaType(metatype),
                 data=data[:evlen],
             )
             return meta_event, data[evlen:]
@@ -80,7 +82,24 @@ class MIDIEvent(Event):
 
 @dataclass
 class MetaEvent(Event):
-    meta_type: int
+    class MetaType(IntEnum):
+        SEQUENCE_NUMBER = 0x00
+        TEXT_EVENT = 0x01
+        COPYRIGHT_NOTICE = 0x02
+        SEQUENCE_OR_TRACK_NAME = 0x03
+        INSTRUMENT_NAME = 0x04
+        LYRICS_TEXT = 0x05
+        MARKER_TEXT = 0x06
+        CUE_POINT = 0x07
+        CHANNEL_PREFIX_ASSIGNMENT = 0x20
+        END_OF_TRACK = 0x2F
+        TEMPO_SETTING = 0x51
+        SMPTE_OFFSET = 0x54
+        TIME_SIGNATURE = 0x58
+        KEY_SIGNATURE = 0x59
+        SEQUENCER_SPECIFIC = 0x7F
+
+    meta_type: MetaType
 
 
 @dataclass
@@ -108,7 +127,7 @@ class File:
 
     @classmethod
     def open(cls, path: str):
-        with open(path, "rb") as fd:
+        with Path(path).open("rb") as fd:
             return cls.from_io(fd)
 
     @classmethod
@@ -159,7 +178,6 @@ class File:
 if __name__ == "__main__":
     import sys
     from binascii import hexlify
-    from os import system
     from time import monotonic
 
     from .transport import UDPTransport
@@ -171,8 +189,12 @@ if __name__ == "__main__":
     bpm = 120
     start = monotonic()
 
-    with UDPTransport("192.0.2.1", 5673) as trans:
+    with UDPTransport("192.168.121.111", 5673) as trans:
         for tick, ev in mid:
+            if isinstance(ev, MetaEvent) and ev.meta_type is MetaEvent.MetaType.TEMPO_SETTING:
+                # Tempo given in µs per quarter note
+                bpm = 60_000_000 / int.from_bytes(ev.data, byteorder="big")
+
             if not isinstance(ev, MIDIEvent):
                 continue
 
@@ -183,6 +205,3 @@ if __name__ == "__main__":
             trans.send(pkt)
 
             midi1_hex = hexlify(ev.data).decode().upper()
-            system(f"amidi -p hw:3,0,0 -S '{midi1_hex}'")
-
-            print(monotonic() - start, tick, pkt)
