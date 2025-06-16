@@ -115,7 +115,6 @@ class UDPTransport(Transport):
 
                 auth = sha256(cmd.payload + self.auth.encode())
                 logger.info(f"Shared secret auth to {self.peer_ip}:{self.peer_port}")
-                print(cmd.payload + self.auth.encode())
                 self.sendcmd(
                     udp.CommandPacket(
                         command=udp.CommandCode.INVITATION_WITH_AUTH,
