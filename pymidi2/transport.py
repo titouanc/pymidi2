@@ -85,6 +85,10 @@ class UDPTransport(Transport):
     connected: bool = False
     auth: None | str | tuple[str, str] = None
 
+    @property
+    def peer(self) -> str:
+        return f"{self.peer_ip}:{self.peer_port}"
+
     @classmethod
     def list(cls) -> Sequence[Self]:
         # TODO: mdns discovery
@@ -107,18 +111,37 @@ class UDPTransport(Transport):
     def check_invitation(self, cmd: udp.CommandPacket) -> None:
         match cmd.command:
             case udp.CommandCode.INVITATION_REPLY_ACCEPTED:
-                logger.info(f"Invitation to {self.peer_ip}:{self.peer_port} accepted")
+                logger.info(f"Invitation to {self.peer} accepted")
                 self.connected = True
+
             case udp.CommandCode.INVITATION_REPLY_AUTH_REQUIRED:
                 if not isinstance(self.auth, str):
-                    raise PermissionError()
+                    raise PermissionError("Authentication requires a shared secret")
 
                 auth = sha256(cmd.payload + self.auth.encode())
-                logger.info(f"Shared secret auth to {self.peer_ip}:{self.peer_port}")
+                logger.info(f"Shared secret auth to {self.peer}")
                 self.sendcmd(
                     udp.CommandPacket(
                         command=udp.CommandCode.INVITATION_WITH_AUTH,
                         payload=auth.digest(),
+                    ),
+                )
+
+            case udp.CommandCode.INVITATION_REPLY_USER_AUTH_REQUIRED:
+                if not isinstance(self.auth, tuple):
+                    raise PermissionError("Authentication requires a user/password")
+
+                logger.info(f"User auth to {self.peer} as {self.auth[0]}")
+                user, pwd = map(str.encode, self.auth)
+                auth = sha256(cmd.payload + user + pwd)
+                if len(user) % 4:
+                    pad = len(user) + 4 - len(user)%4
+                    user = user.ljust(pad, b"\x00")
+
+                self.sendcmd(
+                    udp.CommandPacket(
+                        command=udp.CommandCode.INVITATION_WITH_USER_AUTH,
+                        payload=auth.digest() + user,
                     ),
                 )
 

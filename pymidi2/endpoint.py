@@ -38,13 +38,13 @@ class FunctionBlock:
 
     def __str__(self) -> str:
         direction = f"{'i' if self.is_input else '-'}{'o' if self.is_output else '-'}"
-        role = "----"
+        role = "--------"
         if self.ui_hint_sender and self.ui_hint_receiver:
-            role = "RxTx"
+            role = "Recv/Send"
         elif self.ui_hint_sender:
-            role = "  Tx"
+            role = "     Send"
         elif self.ui_hint_receiver:
-            role = "Rx  "
+            role = "Recv     "
 
         limitation = "[MIDI1 + MIDI2]"
         if self.midi1 and self.restrict_31_25kbps:
