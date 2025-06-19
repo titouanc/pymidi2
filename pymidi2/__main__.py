@@ -41,7 +41,9 @@ def find_endpoints(args) -> None:
         else:
             transports = chain(ALSATransport.find(), UDPTransport.find())
 
-    for t in transports:
+    for i, t in enumerate(transports):
+        if i:
+            print()
         print_ep_topology(t.url)
 
 
