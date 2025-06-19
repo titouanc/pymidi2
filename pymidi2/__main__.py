@@ -9,6 +9,7 @@ from pymidi2.endpoint import UMPEndpoint
 from pymidi2.transport import (
     ALSATransport,
     SharedSecretRequiredError,
+    Transport,
     UDPTransport,
     UserPasswordRequiredError,
 )
@@ -30,6 +31,7 @@ def print_ep_topology(endpoint_url: str) -> None:
 
 
 def find_endpoints(args) -> None:
+    transports: chain[Transport] | list[ALSATransport] | list[UDPTransport]
     if args.alsa_only:
         transports = ALSATransport.find()
     else:

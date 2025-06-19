@@ -6,6 +6,10 @@ from enum import IntEnum
 from itertools import chain, groupby
 from operator import itemgetter
 from pathlib import Path
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from collections.abc import Generator
 
 # See https://ccrma.stanford.edu/~craig/14q/midifile/MidiFileFormat.html
 # also https://www.blitter.com/~russtopia/MIDI/~jglatt/tech/midifile.htm
@@ -157,7 +161,7 @@ class File:
             tracks=[Track.from_io(io) for i in range(ntracks)],
         )
 
-    def __iter__(self):
+    def __iter__(self) -> Generator[tuple[float, list[Event]]]:
         all_abs_events = sorted(
             chain(*(t.abs_tick_events for t in self.tracks)),
             key=itemgetter(0),
