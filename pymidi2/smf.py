@@ -128,13 +128,11 @@ class Track:
         return cls(events=events)
 
     @property
-    def abs_tick_events(self) -> list[tuple[int, Event]]:
-        res = []
+    def abs_tick_events(self) -> Generator[tuple[int, Event]]:
         t = 0
         for ev in self.events:
             t += ev.delta_time
-            res.append((t, ev))
-        return res
+            yield t, ev
 
 
 @dataclass
