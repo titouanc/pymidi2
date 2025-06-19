@@ -1,6 +1,6 @@
 import pytest
 
-from pymidi2.core import CommandCode, CommandPacket, MIDIUDPPacket
+from pymidi2.udp import CommandCode, CommandPacket, MIDIUDPPacket
 
 
 def test_decode_valid_packet():
