@@ -1,8 +1,9 @@
+from __future__ import annotations
+
 import struct
 from dataclasses import dataclass
 from enum import IntEnum
 from pathlib import Path
-from typing import Self
 
 # See https://ccrma.stanford.edu/~craig/14q/midifile/MidiFileFormat.html
 # also https://www.blitter.com/~russtopia/MIDI/~jglatt/tech/midifile.htm
@@ -35,6 +36,7 @@ def get_varint(data: bytes) -> tuple[int, bytes]:
         res |= data[i] & 0x7F
         if data[i] & 0x80 == 0:
             return res, data[i + 1 :]
+    return res, b""
 
 
 def get_midi(data: bytes) -> tuple[bytes, bytes]:
@@ -50,7 +52,7 @@ class Event:
     data: bytes
 
     @classmethod
-    def from_bytes(cls, data: bytes) -> tuple[Self, bytes]:
+    def from_bytes(cls, data: bytes) -> tuple[Event, bytes]:
         t, data = get_varint(data)
 
         if data[0] == 0xFF:
@@ -68,9 +70,8 @@ class Event:
                 if data[i] == 0xF7:
                     return SysexEvent(delta_time=t, data=data[1:i]), data[i + 1 :]
 
-        else:
-            evlen = MIDI1_EVLEN[data[0] & 0xF0 if data[0] < 0xF0 else data[0]]
-            return MIDIEvent(delta_time=t, data=data[:evlen]), data[evlen:]
+        evlen = MIDI1_EVLEN[data[0] & 0xF0 if data[0] < 0xF0 else data[0]]
+        return MIDIEvent(delta_time=t, data=data[:evlen]), data[evlen:]
 
 
 class SysexEvent(Event):
@@ -186,7 +187,7 @@ if __name__ == "__main__":
 
     mid = File.open(sys.argv[1])
 
-    bpm = 120
+    bpm = 120.0
     start = monotonic()
 
     with UDPTransport("192.168.121.111", 5673) as trans:

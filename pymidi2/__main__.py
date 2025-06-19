@@ -7,15 +7,15 @@ from pymidi2.endpoint import UMPEndpoint
 from pymidi2.transport import ALSATransport, UDPTransport
 
 
-def list_endpoints(args):
+def find_endpoints(args):
     if args.alsa_only:
-        transports = ALSATransport.list()
+        transports = ALSATransport.find()
     else:
         sleep(args.wait)
         if args.udp_only:
-            transports = UDPTransport.list()
+            transports = UDPTransport.find()
         else:
-            transports = chain(ALSATransport.list(), UDPTransport.list())
+            transports = chain(ALSATransport.find(), UDPTransport.find())
 
     for t in transports:
         try:
@@ -27,11 +27,11 @@ def list_endpoints(args):
                 print("-", fb)
 
         except PermissionError:
-            print(t.url, "Authentication required")
+            print(f"{t.url} - Authentication required")
 
 
 ACTIONS = {
-    "list": list_endpoints,
+    "find": find_endpoints,
 }
 
 parser = ArgumentParser(formatter_class=ArgumentDefaultsHelpFormatter)

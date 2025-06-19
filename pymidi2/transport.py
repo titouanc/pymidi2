@@ -1,7 +1,8 @@
+from __future__ import annotations
+
 import socket
 import struct
 from abc import abstractmethod
-from collections.abc import Sequence
 from dataclasses import dataclass, field, replace
 from hashlib import sha256
 from logging import getLogger
@@ -20,7 +21,7 @@ logger = getLogger(__name__)
 class Transport:
     @classmethod
     @abstractmethod
-    def list(cls) -> Sequence[Self]: ...
+    def find(cls) -> list[Self]: ...
 
     def connect(self) -> None:
         if getattr(self, "_transport_connected", False):
@@ -60,12 +61,14 @@ class Transport:
         self.disconnect()
 
     @staticmethod
-    def open(url: str) -> Self:
+    def open(url: str) -> Transport:
         parsed = urlparse(url)
         match parsed.scheme:
             case "file":
                 return ALSATransport(location=Path(parsed.path))
             case "udp":
+                if parsed.hostname is None or parsed.port is None:
+                    raise ValueError("Missing host or port in udp url")
                 return UDPTransport(
                     peer_ip=parsed.hostname,
                     peer_port=parsed.port,
@@ -89,7 +92,7 @@ class ALSATransport(Transport):
         return f"file://{self.location}"
 
     @classmethod
-    def list(cls) -> Sequence[Self]:
+    def find(cls) -> list[Self]:
         return [cls(location=p) for p in Path("/dev/snd").glob("ump*")]
 
     def _connect(self):
@@ -128,9 +131,10 @@ class MIDI2Listener(ServiceListener):
 
     def add_service(self, zc: Zeroconf, type_: str, name: str) -> None:
         info = zc.get_service_info(type_, name)
-        addr = ".".join(map(str, info.addresses[0]))
-        self.discovered[name] = (addr, info.port)
-        logger.debug(f"Discovered MIDI2 service {name} at {addr}:{info.port}")
+        if info is not None and info.port is not None:
+            addr = ".".join(map(str, info.addresses[0]))
+            self.discovered[name] = (addr, info.port)
+            logger.debug(f"Discovered MIDI2 service {name} at {addr}:{info.port}")
 
     update_service = add_service
 
@@ -161,16 +165,18 @@ class UDPTransport(Transport):
         return f"{self.peer_ip}:{self.peer_port}"
 
     @classmethod
-    def list(cls) -> Sequence[Self]:
-        for peer_ip, peer_port in cls._mdns_listener.discovered.values():
-            yield cls(peer_ip, peer_port)
+    def find(cls) -> list[Self]:
+        return [
+            cls(peer_ip, peer_port)
+            for peer_ip, peer_port in cls._mdns_listener.discovered.values()
+        ]
 
     def sendcmd(self, *commands: udp.CommandPacket):
         pkt = udp.MIDIUDPPacket(list(commands))
         self.sock.sendto(bytes(pkt), (self.peer_ip, self.peer_port))
         logger.debug(f"Tx {pkt!r}")
 
-    def recvcmd(self) -> Sequence[udp.CommandPacket]:
+    def recvcmd(self) -> list[udp.CommandPacket]:
         while True:
             buf, addr_info = self.sock.recvfrom(1500)
             if addr_info != (self.peer_ip, self.peer_port):
