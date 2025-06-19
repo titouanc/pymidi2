@@ -118,6 +118,13 @@ def send_midi1(args):
     endpoint.sendmany(pkts)
 
 
+def send_midi2(args):
+    pkts = [ump.UMP.parse([int(w, 16) for w in ev.split(",")]) for ev in args.event]
+
+    endpoint = UMPEndpoint.open(args.endpoint_url)
+    endpoint.sendmany(pkts)
+
+
 def main():
     args = parser.parse_args()
 
@@ -141,6 +148,7 @@ parser.add_argument("-I", "--info", action="store_true", help="Enable info loggi
 parser.add_argument("-D", "--debug", action="store_true", help="Enable debug logging")
 subparsers = parser.add_subparsers()
 
+
 parser_find = subparsers.add_parser("find", help="Find available UMP endpoints")
 parser_find.set_defaults(func=find_endpoints)
 parser_find.add_argument(
@@ -163,6 +171,7 @@ parser_find.add_argument(
     help="Number of seconds to wait for enpoints discovery on the network",
 )
 
+
 parser_topo = subparsers.add_parser("topo", help="Print UMP endpoint topology")
 parser_topo.set_defaults(func=topo_endpoint)
 parser_topo.add_argument("endpoint_url", help="URL of the UMP endpoint to connect to")
@@ -183,10 +192,17 @@ parser_play.add_argument(
     help="Do not print MIDI events to stdout as they are played",
 )
 
+
 parser_send1 = subparsers.add_parser("send1", help="Send MIDI1 events")
 parser_send1.set_defaults(func=send_midi1)
 parser_send1.add_argument("endpoint_url", help="URL of the UMP endpoint to connect to")
 parser_send1.add_argument("event", nargs="+")
+
+
+parser_send2 = subparsers.add_parser("send2", help="Send MIDI1 events")
+parser_send2.set_defaults(func=send_midi2)
+parser_send2.add_argument("endpoint_url", help="URL of the UMP endpoint to connect to")
+parser_send2.add_argument("event", nargs="+")
 
 if __name__ == "__main__":
     main()

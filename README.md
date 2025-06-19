@@ -13,6 +13,23 @@ Currently, it supports:
 - Reading SMF version 1 (.mid) files
 - Endpoint topology discovery via UMP Stream messages
 
+## Installation
+
+This project is managed with `uv`, make sure it is installed on your system.
+On Archlinux for example:
+
+```bash
+pacman -S python-uv
+```
+
+Then clone this repository and ensure it works:
+
+```bash
+git clone git@github.com:titouanc/pymidi2
+cd pymidi2
+uv run pymidi2 --help
+```
+
 ## Endpoint URLs
 
 The UMP endpoints can be located with URLs. Two supported schemes:
@@ -33,15 +50,6 @@ Some valid examples:
 - `udp://my-host:5673` (no authentication)
 - `udp://the-key@my-host:5673` (shared key authentication)
 - `udp://user:password@my-host:5673#3` (user/password auth, UMP Group number 3)
-
-## Installation
-
-This project is managed with `uv`, make sure it is installed on your system.
-On Archlinux for example:
-
-```bash
-pacman -S python-uv
-```
 
 ## Command line tool
 
@@ -67,7 +75,7 @@ options:
   -D, --debug           Enable debug logging (default: False)
 ```
 
-### Finding available Universal MIDI Endpoints
+### `find`: Finding available Universal MIDI Endpoints
 
 To find all UMP endpoints that can be reached through all supported transports:
 
@@ -79,7 +87,7 @@ Zephyr-UDP-MIDI2 (udp://192.168.129.35:53982)
 - Block #2 [-o :      Send] 'External output (MIDI DIN-5)' UMP groups {9} [MIDI1 31.25kb/s]
 ```
 
-### Viewing a particular endpoint's topology
+### `topo`: Viewing a particular endpoint's topology
 
 If a UDP endpoint requires authentication, you can request its topology by
 passing the authentication credentials in the url with `pymidi2 topo`
@@ -92,7 +100,7 @@ Zephyr-UDP-MIDI2 (udp://192.168.129.35:53982)
 - Block #2 [-o :      Send] 'External output (MIDI DIN-5)' UMP groups {9} [MIDI1 31.25kb/s]
 ```
 
-### Playing a MIDI file
+### `play`: Playing a MIDI file
 
 Pass the option `-q / --quiet` to suppress MIDI1 events being printed to stdout.
 
@@ -105,10 +113,21 @@ BE0750
 ...
 ```
 
-### Sending MIDI1 events
+### `send1`: Sending MIDI1 events
+
+Pass one or more MIDI1 events, in hexadecimal form
 
 ```
 $ uv run pymidi2 send1  udp://192.168.129.35:53982#9 90407F 90427F 90457F
+```
+
+### `send2`: Sending MIDI2 events
+
+Pass one or more UMP, in hexadecimal form. Separate the 32-bit words of a same
+packet by commas,.
+
+```
+ $ uv run pymidi2 send2 udp://192.168.129.35:53982 49904000,FFFF0000 2990427F
 ```
 
 ## Reference documents
