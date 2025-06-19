@@ -3,6 +3,8 @@ from __future__ import annotations
 import struct
 from dataclasses import dataclass
 from enum import IntEnum
+from itertools import chain, groupby
+from operator import itemgetter
 from pathlib import Path
 
 # See https://ccrma.stanford.edu/~craig/14q/midifile/MidiFileFormat.html
@@ -121,6 +123,15 @@ class Track:
             events.append(event)
         return cls(events=events)
 
+    @property
+    def abs_tick_events(self) -> list[tuple[int, Event]]:
+        res = []
+        t = 0
+        for ev in self.events:
+            t += ev.delta_time
+            res.append((t, ev))
+        return res
+
 
 @dataclass
 class File:
@@ -147,38 +158,10 @@ class File:
         )
 
     def __iter__(self):
-        tick = 0
-        track_i = len(self.tracks) * [0]
-        track_dt = len(self.tracks) * [0]
+        all_abs_events = sorted(
+            chain(*(t.abs_tick_events for t in self.tracks)),
+            key=itemgetter(0),
+        )
 
-        to_yield = []
-
-        while True:
-            min_dt = 0
-
-            while min_dt == 0:
-                # Get next event for each track
-                events = [
-                    (t.events[i] if i < len(t.events) else None)
-                    for t, i in zip(self.tracks, track_i)
-                ]
-
-                if not any(events):
-                    return
-
-                min_dt = min(
-                    e.delta_time - track_dt[i]
-                    for i, e in enumerate(events)
-                    if e is not None
-                )
-
-                tick += min_dt
-                for i, e in enumerate(events):
-                    if e and e.delta_time - track_dt[i] == min_dt:
-                        to_yield.append(e)
-                        track_i[i] += 1
-                        track_dt[i] = 0
-                    else:
-                        track_dt[i] += min_dt
-            yield tick / self.division, to_yield
-            to_yield = []
+        for tick, abs_events in groupby(all_abs_events, key=itemgetter(0)):
+            yield tick / self.division, [ev for t, ev in abs_events]

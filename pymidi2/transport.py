@@ -22,6 +22,7 @@ def encode_ump(packet: UMP, struct_ordering: str) -> bytes:
     words = packet.encode()
     return struct.pack(struct_ordering + len(words) * "I", *words)
 
+
 class Transport:
     @classmethod
     @abstractmethod
@@ -276,14 +277,16 @@ class UDPTransport(Transport):
         self.sock.close()
 
     def sendmany(self, packets: list[UMP]) -> None:
-        self.sendcmds([
-            udp.CommandPacket(
-                command=udp.CommandCode.UMP_DATA,
-                specific_data=self.tx_seq + i,
-                payload=encode_ump(p, ">"),
-            )
-            for i, p in enumerate(packets)
-        ])
+        self.sendcmds(
+            [
+                udp.CommandPacket(
+                    command=udp.CommandCode.UMP_DATA,
+                    specific_data=self.tx_seq + i,
+                    payload=encode_ump(p, ">"),
+                )
+                for i, p in enumerate(packets)
+            ],
+        )
         self.tx_seq += len(packets)
 
     def dispatch(self, cmd: udp.CommandPacket):

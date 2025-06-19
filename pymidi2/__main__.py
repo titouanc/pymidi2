@@ -57,7 +57,7 @@ def play_file(args) -> None:
     bpm = 120.0
     start = time.monotonic()
 
-    for tick, events in smf.File.from_io(args.file):
+    for beat, events in smf.File.from_io(args.file):
         pkts = []
 
         for ev in events:
@@ -75,10 +75,9 @@ def play_file(args) -> None:
                 prefix = bytes([0x20 + ump_group])
                 event_bytes = (prefix + ev.data).ljust(4, b"\x00")
                 pkts.append(ump.UMP.parse([int.from_bytes(event_bytes)]))
-            else:
-                print(hexlify(ev.data).decode().upper())
+            print(hexlify(ev.data).decode().upper())
 
-        while (time.monotonic() - start) / 60 < tick / bpm:
+        while (time.monotonic() - start) / 60 < beat / bpm:
             pass
 
         if endpoint is not None:
@@ -99,7 +98,10 @@ def main():
         parser.print_usage()
 
 
-parser = argparse.ArgumentParser("pymidi2", formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+parser = argparse.ArgumentParser(
+    "pymidi2",
+    formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+)
 
 parser.add_argument("-I", "--info", action="store_true", help="Enable info logging")
 parser.add_argument("-D", "--debug", action="store_true", help="Enable debug logging")
