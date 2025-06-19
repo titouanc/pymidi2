@@ -18,6 +18,10 @@ from .ump import UMP, MessageType
 logger = getLogger(__name__)
 
 
+def encode_ump(packet: UMP, struct_ordering: str) -> bytes:
+    words = packet.encode()
+    return struct.pack(struct_ordering + len(words) * "I", *words)
+
 class Transport:
     @classmethod
     @abstractmethod
@@ -43,8 +47,11 @@ class Transport:
     @abstractmethod
     def _disconnect(self): ...
 
+    def send(self, packet: UMP) -> None:
+        self.sendmany([packet])
+
     @abstractmethod
-    def send(self, packet: UMP): ...
+    def sendmany(self, packets: list[UMP]) -> None: ...
 
     @abstractmethod
     def recv(self) -> UMP: ...
@@ -101,12 +108,11 @@ class ALSATransport(Transport):
     def _disconnect(self):
         self.recvfd.close()
 
-    def send(self, packet: UMP):
-        words = packet.encode()
-        encoded = struct.pack("@" + len(words) * "I", *words)
+    def sendmany(self, packets: list[UMP]):
         with self.location.open("wb") as fd:
-            fd.write(encoded)
-            logger.debug(f"Tx {packet!r}")
+            fd.write(b"".join(encode_ump(p, "@") for p in packets))
+        for p in packets:
+            logger.debug(f"Tx {p!r}")
 
     def recv(self) -> UMP:
         words = struct.unpack("@I", self.recvfd.read(4))
@@ -181,8 +187,11 @@ class UDPTransport(Transport):
             for peer_ip, peer_port in cls._mdns_listener.discovered.values()
         ]
 
-    def sendcmd(self, *commands: udp.CommandPacket):
-        pkt = udp.MIDIUDPPacket(list(commands))
+    def sendcmd(self, command: udp.CommandPacket) -> None:
+        self.sendcmds([command])
+
+    def sendcmds(self, commands: list[udp.CommandPacket]) -> None:
+        pkt = udp.MIDIUDPPacket(commands)
         self.sock.sendto(bytes(pkt), (self.peer_ip, self.peer_port))
         logger.debug(f"Tx {pkt!r}")
 
@@ -266,17 +275,16 @@ class UDPTransport(Transport):
         self.session_established = False
         self.sock.close()
 
-    def send(self, packet: UMP):
-        words = packet.encode()
-        encoded = struct.pack(">" + len(words) * "I", *words)
-        self.sendcmd(
+    def sendmany(self, packets: list[UMP]) -> None:
+        self.sendcmds([
             udp.CommandPacket(
                 command=udp.CommandCode.UMP_DATA,
-                specific_data=self.tx_seq,
-                payload=encoded,
-            ),
-        )
-        self.tx_seq += 1
+                specific_data=self.tx_seq + i,
+                payload=encode_ump(p, ">"),
+            )
+            for i, p in enumerate(packets)
+        ])
+        self.tx_seq += len(packets)
 
     def dispatch(self, cmd: udp.CommandPacket):
         match cmd.command:

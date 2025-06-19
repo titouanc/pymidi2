@@ -151,61 +151,34 @@ class File:
         track_i = len(self.tracks) * [0]
         track_dt = len(self.tracks) * [0]
 
+        to_yield = []
+
         while True:
-            # Get next event for each track
-            events = [
-                (t.events[i] if i < len(t.events) else None)
-                for t, i in zip(self.tracks, track_i)
-            ]
+            min_dt = 0
 
-            if not any(events):
-                return
+            while min_dt == 0:
+                # Get next event for each track
+                events = [
+                    (t.events[i] if i < len(t.events) else None)
+                    for t, i in zip(self.tracks, track_i)
+                ]
 
-            min_dt = min(
-                e.delta_time - track_dt[i]
-                for i, e in enumerate(events)
-                if e is not None
-            )
+                if not any(events):
+                    return
 
-            tick += min_dt
-            for i, e in enumerate(events):
-                if e and e.delta_time - track_dt[i] == min_dt:
-                    yield tick / self.division, e
-                    track_i[i] += 1
-                    track_dt[i] = 0
-                else:
-                    track_dt[i] += min_dt
+                min_dt = min(
+                    e.delta_time - track_dt[i]
+                    for i, e in enumerate(events)
+                    if e is not None
+                )
 
-
-if __name__ == "__main__":
-    import sys
-    from binascii import hexlify
-    from time import monotonic
-
-    from .transport import UDPTransport
-    from .ump import UMP
-
-    mid = File.open(sys.argv[1])
-
-    bpm = 120.0
-    start = monotonic()
-
-    with UDPTransport("192.168.121.111", 5673) as trans:
-        for tick, ev in mid:
-            if (
-                isinstance(ev, MetaEvent)
-                and ev.meta_type is MetaEvent.MetaType.TEMPO_SETTING
-            ):
-                # Tempo given in µs per quarter note
-                bpm = 60_000_000 / int.from_bytes(ev.data, byteorder="big")
-
-            if not isinstance(ev, MIDIEvent):
-                continue
-
-            while (monotonic() - start) / 60 < tick / bpm:
-                pass
-
-            pkt = UMP.parse(struct.unpack(">I", (b"\x20" + ev.data).ljust(4, b"\x00")))
-            trans.send(pkt)
-
-            midi1_hex = hexlify(ev.data).decode().upper()
+                tick += min_dt
+                for i, e in enumerate(events):
+                    if e and e.delta_time - track_dt[i] == min_dt:
+                        to_yield.append(e)
+                        track_i[i] += 1
+                        track_dt[i] = 0
+                    else:
+                        track_dt[i] += min_dt
+            yield tick / self.division, to_yield
+            to_yield = []

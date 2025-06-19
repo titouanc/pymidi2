@@ -64,15 +64,17 @@ class UMPEndpoint:
     function_blocks: list[FunctionBlock | None] = field(default_factory=list)
     name: str | None = None
     _name_complete: bool = False
+    _transport_connected: bool = False
 
     @classmethod
     def open(cls, url: str) -> Self:
         transport = Transport.open(url)
         transport.connect()
-        return cls(transport)
+        return cls(transport, _transport_connected=True)
 
     def __del__(self):
-        self.transport.disconnect()
+        if self._transport_connected:
+            self.transport.disconnect()
 
     def dispatch(self, pkt: ump.UMP) -> None:
         if isinstance(pkt, ump.EndpointInfoNotification):
@@ -155,3 +157,12 @@ class UMPEndpoint:
         if wait_for_all_names:
             while not self.has_all_names:
                 self.dispatch(self.transport.recv())
+
+    def send(self, pkt: ump.UMP) -> None:
+        self.transport.send(pkt)
+
+    def sendmany(self, pkts: list[ump.UMP]) -> None:
+        self.transport.sendmany(pkts)
+
+    def recv(self) -> ump.UMP:
+        return self.transport.recv()
