@@ -1,9 +1,10 @@
 import logging
+import signal
 from dataclasses import dataclass, field
 from typing import Self, cast
 
 from . import ump
-from .transport import ALSATransport, Transport
+from .transport import ALSATransport, Transport, UDPTransport
 
 logger = logging.getLogger(__name__)
 
@@ -53,7 +54,7 @@ class FunctionBlock:
             limitation = "[MIDI1 only]"
 
         return (
-            f"- Block #{self._id} [{direction} : {role}] "
+            f"Block #{self._id} [{direction} : {role}] "
             f"'{self.name}' UMP groups {self.groups} {limitation}"
         )
 
@@ -64,6 +65,15 @@ class UMPEndpoint:
     function_blocks: list[FunctionBlock | None] = field(default_factory=list)
     name: str | None = None
     _name_complete: bool = False
+
+    @classmethod
+    def open(cls, url: str) -> Self:
+        transport = Transport.open(url)
+        transport.connect()
+        return cls(transport)
+
+    def __del__(self):
+        self.transport.disconnect()
 
     def dispatch(self, pkt: ump.UMP) -> None:
         if isinstance(pkt, ump.EndpointInfoNotification):
@@ -146,13 +156,3 @@ class UMPEndpoint:
         if wait_for_all_names:
             while not self.has_all_names:
                 self.dispatch(self.transport.recv())
-
-
-if __name__ == "__main__":
-    with ALSATransport.list()[0] as t:
-        ep = UMPEndpoint(t)
-        ep.discover()
-
-        print(f"UMP Endpoint '{ep.name}'")
-        for fb in ep.function_blocks:
-            print(str(fb))

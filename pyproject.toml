@@ -5,7 +5,8 @@ readme = "README.md"
 dynamic = ["version"]
 requires-python = ">=3.11"
 dependencies = [
-    "typing-extensions"
+    "typing-extensions",
+    "zeroconf",
 ]
 authors = [
     {name = "Titouan Christophe", email = "moiandme@gmail.com"}

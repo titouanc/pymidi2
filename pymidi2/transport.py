@@ -6,7 +6,10 @@ from dataclasses import dataclass, field, replace
 from hashlib import sha256
 from logging import getLogger
 from pathlib import Path
-from typing import Self
+from typing import ClassVar, Self
+from urllib.parse import urlparse
+
+from zeroconf import ServiceBrowser, ServiceListener, Zeroconf
 
 from . import udp
 from .ump import UMP, MessageType
@@ -19,17 +22,35 @@ class Transport:
     @abstractmethod
     def list(cls) -> Sequence[Self]: ...
 
-    @abstractmethod
-    def connect(self): ...
+    def connect(self) -> None:
+        if getattr(self, "_transport_connected", False):
+            logger.warning("Already connected")
+        else:
+            self._connect()
+            self._transport_connected = True
+
+    def disconnect(self) -> None:
+        if getattr(self, "_transport_connected", False):
+            self._disconnect()
+            self._transport_connected = False
+        else:
+            logger.warning("Already disconnected")
 
     @abstractmethod
-    def disconnect(self): ...
+    def _connect(self): ...
+
+    @abstractmethod
+    def _disconnect(self): ...
 
     @abstractmethod
     def send(self, packet: UMP): ...
 
     @abstractmethod
     def recv(self) -> UMP: ...
+
+    @property
+    @abstractmethod
+    def url(self) -> str: ...
 
     def __enter__(self):
         self.connect()
@@ -38,19 +59,37 @@ class Transport:
     def __exit__(self, *args, **kwargs):
         self.disconnect()
 
+    @staticmethod
+    def open(url: str) -> Self:
+        parsed = urlparse(url)
+        match parsed.scheme:
+            case "file":
+                return ALSATransport(location=Path(parsed.path))
+            case "udp":
+                return UDPTransport(
+                    peer_ip=parsed.hostname,
+                    peer_port=parsed.port,
+                    auth=((parsed.username, parsed.password) if parsed.username else parsed.password) if parsed.password else None,
+                )
+        raise ValueError(f"Invalid UMP endpoint {url=!r}")
+
 
 @dataclass
 class ALSATransport(Transport):
     location: Path
 
+    @property
+    def url(self) -> str:
+        return f"file://{self.location}"
+
     @classmethod
     def list(cls) -> Sequence[Self]:
         return [cls(location=p) for p in Path("/dev/snd").glob("ump*")]
 
-    def connect(self):
+    def _connect(self):
         self.recvfd = self.location.open("rb")
 
-    def disconnect(self):
+    def _disconnect(self):
         self.recvfd.close()
 
     def send(self, packet: UMP):
@@ -75,6 +114,22 @@ class ALSATransport(Transport):
 
 
 @dataclass
+class MIDI2Listener(ServiceListener):
+    discovered: dict[str, tuple[str, int]] = field(default_factory=dict)
+
+    def remove_service(self, zc: Zeroconf, type_: str, name: str) -> None:
+        self.discovered.pop(name, None)
+
+    def add_service(self, zc: Zeroconf, type_: str, name: str) -> None:
+        info = zc.get_service_info(type_, name)
+        addr = ".".join(map(str, info.addresses[0]))
+        self.discovered[name] = (addr, info.port)
+        logger.debug(f"Discovered MIDI2 service {name} at {addr}:{info.port}")
+
+    update_service = add_service
+
+
+@dataclass
 class UDPTransport(Transport):
     peer_ip: str
     peer_port: int
@@ -82,8 +137,18 @@ class UDPTransport(Transport):
     bind_port: int = 0
     tx_seq: int = 0
     rx_queue: list[UMP] = field(default_factory=list)
-    connected: bool = False
+    session_established: bool = False
     auth: None | str | tuple[str, str] = None
+    _mdns_listener: ClassVar[MIDI2Listener] = MIDI2Listener()
+
+    @property
+    def url(self) -> str:
+        auth = ""
+        if isinstance(self.auth, str):
+            auth = f":{self.auth}@"
+        elif isinstance(self.auth, tuple):
+            auth = ":".join(self.auth) + "@"
+        return f"udp://{auth}{self.peer}"
 
     @property
     def peer(self) -> str:
@@ -91,8 +156,8 @@ class UDPTransport(Transport):
 
     @classmethod
     def list(cls) -> Sequence[Self]:
-        # TODO: mdns discovery
-        raise NotImplementedError()
+        for peer_ip, peer_port in cls._mdns_listener.discovered.values():
+            yield cls(peer_ip, peer_port)
 
     def sendcmd(self, *commands: udp.CommandPacket):
         pkt = udp.MIDIUDPPacket(list(commands))
@@ -112,7 +177,7 @@ class UDPTransport(Transport):
         match cmd.command:
             case udp.CommandCode.INVITATION_REPLY_ACCEPTED:
                 logger.info(f"Invitation to {self.peer} accepted")
-                self.connected = True
+                self.session_established = True
 
             case udp.CommandCode.INVITATION_REPLY_AUTH_REQUIRED:
                 if not isinstance(self.auth, str):
@@ -145,8 +210,8 @@ class UDPTransport(Transport):
                     ),
                 )
 
-    def connect(self):
-        self.connected = False
+    def _connect(self):
+        self.session_established = False
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         self.sock.bind(("0.0.0.0", 0))
         self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
@@ -160,24 +225,24 @@ class UDPTransport(Transport):
         )
 
         # 2. Wait for invitation reply
-        while not self.connected:
+        while not self.session_established:
             for cmd in self.recvcmd():
                 self.check_invitation(cmd)
 
 
-    def disconnect(self):
+    def _disconnect(self):
         self.sendcmd(
             udp.CommandPacket(
                 command=udp.CommandCode.BYE,
                 specific_data=(
                     udp.ByeReason.USER_TERMINATED
-                    if self.connected
+                    if self.session_established
                     else udp.ByeReason.INVITATION_CANCELED
                 )
                 << 8,
             ),
         )
-        self.connected = False
+        self.session_established = False
         self.sock.close()
 
     def send(self, packet: UMP):
@@ -210,3 +275,6 @@ class UDPTransport(Transport):
             for cmd in self.recvcmd():
                 self.dispatch(cmd)
         return self.rx_queue.pop(0)
+
+
+ServiceBrowser(Zeroconf(), "_midi2._udp.local.", UDPTransport._mdns_listener)
