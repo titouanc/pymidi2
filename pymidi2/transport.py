@@ -139,6 +139,16 @@ class MIDI2Listener(ServiceListener):
     update_service = add_service
 
 
+class SharedSecretRequiredError(PermissionError):
+    def __init__(self):
+        super().__init__("Endpoint requires a shared secret authentication")
+
+
+class UserPasswordRequiredError(PermissionError):
+    def __init__(self):
+        super().__init__("Endpoint requires a user/password authentication")
+
+
 @dataclass
 class UDPTransport(Transport):
     peer_ip: str
@@ -193,7 +203,7 @@ class UDPTransport(Transport):
 
             case udp.CommandCode.INVITATION_REPLY_AUTH_REQUIRED:
                 if not isinstance(self.auth, str):
-                    raise PermissionError("Authentication requires a shared secret")
+                    raise SharedSecretRequiredError()
 
                 auth = sha256(cmd.payload + self.auth.encode())
                 logger.info(f"Shared secret auth to {self.peer}")
@@ -206,7 +216,7 @@ class UDPTransport(Transport):
 
             case udp.CommandCode.INVITATION_REPLY_USER_AUTH_REQUIRED:
                 if not isinstance(self.auth, tuple):
-                    raise PermissionError("Authentication requires a user/password")
+                    raise UserPasswordRequiredError()
 
                 logger.info(f"User auth to {self.peer} as {self.auth[0]}")
                 user, pwd = map(str.encode, self.auth)
