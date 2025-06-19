@@ -37,14 +37,23 @@ ACTIONS = {
 parser = ArgumentParser(formatter_class=ArgumentDefaultsHelpFormatter)
 parser.add_argument("action", choices=ACTIONS.keys())
 parser.add_argument(
-    "-v", "--verbose", action="store_true", help="Enable verbose logging",
+    "-v",
+    "--verbose",
+    action="store_true",
+    help="Enable verbose logging",
 )
 parser.add_argument("-D", "--debug", action="store_true", help="Enable debug logging")
 parser.add_argument(
-    "-u", "--udp-only", action="store_true", help="Only list UDP endpoints",
+    "-u",
+    "--udp-only",
+    action="store_true",
+    help="Only list UDP endpoints",
 )
 parser.add_argument(
-    "-a", "--alsa-only", action="store_true", help="Only list ALSA endpoints",
+    "-a",
+    "--alsa-only",
+    action="store_true",
+    help="Only list ALSA endpoints",
 )
 parser.add_argument(
     "-w",
