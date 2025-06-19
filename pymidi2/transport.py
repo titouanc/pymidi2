@@ -82,10 +82,10 @@ class Transport:
                     peer_port=parsed.port,
                     auth=(
                         (parsed.username, parsed.password)
-                        if parsed.username
-                        else parsed.password
+                        if parsed.password
+                        else parsed.username
                     )
-                    if parsed.password
+                    if parsed.username
                     else None,
                 )
         raise ValueError(f"Invalid UMP endpoint {url=!r}")
@@ -172,7 +172,7 @@ class UDPTransport(Transport):
     def url(self) -> str:
         auth = ""
         if isinstance(self.auth, str):
-            auth = f":{self.auth}@"
+            auth = f"{self.auth}@"
         elif isinstance(self.auth, tuple):
             auth = ":".join(self.auth) + "@"
         return f"udp://{auth}{self.peer}"

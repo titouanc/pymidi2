@@ -1,9 +1,115 @@
 # pymidi2
 
-A pure Python implementation of MIDI2 Universal MIDI Packets (UMP)
-
+A pure Python implementation of MIDI2 Universal MIDI Packets (UMP).
 
 **Note**: This project is currently incomplete, and serves as a workbench for other developments
+
+Currently, it supports:
+
+- Raw UMP endpoints over ALSA (linux)
+- UMP endpoints over UDP (network / multiplatform)
+    - Authentication (shared secret or user:password)
+    - Network discovery via zeroconf (DNS-SD)
+- Reading SMF version 1 (.mid) files
+- Endpoint topology discovery via UMP Stream messages
+
+## Endpoint URLs
+
+The UMP endpoints can be located with URLs. Two supported schemes:
+
+- `file://` for raw UMP ALSA endpoints
+- `udp://` for network endpoints
+
+The UMP Group number (0-15) can be specified in the URL fragment (`...#<group>`).
+
+Authentication for the UDP endpoints can be passed in the URL:
+
+- `udp://<shared-key>@host`
+- `udp://<username>:<password>@host`
+
+Some valid examples:
+
+- `file:///dev/snd/umpC2D0`
+- `udp://my-host:5673` (no authentication)
+- `udp://the-key@my-host:5673` (shared key authentication)
+- `udp://user:password@my-host:5673#3` (user/password auth, UMP Group number 3)
+
+## Installation
+
+This project is managed with `uv`, make sure it is installed on your system.
+On Archlinux for example:
+
+```bash
+pacman -S python-uv
+```
+
+## Command line tool
+
+Run the command line tool with `uv run pymidi2`
+
+Pass `-h / --help` to `pymidi2` or any of its subcommands to enquire about its
+options and usage.
+
+```
+$ uv run pymidi2 -h
+usage: pymidi2 [-h] [-I] [-D] {find,topo,play,send1} ...
+
+positional arguments:
+  {find,topo,play,send1}
+    find                Find available UMP endpoints
+    topo                Print UMP endpoint topology
+    play                Play a MIDI file
+    send1               Send MIDI1 events
+
+options:
+  -h, --help            show this help message and exit
+  -I, --info            Enable info logging (default: False)
+  -D, --debug           Enable debug logging (default: False)
+```
+
+### Finding available Universal MIDI Endpoints
+
+To find all UMP endpoints that can be reached through all supported transports:
+
+```
+$ uv run pymidi2 find
+Zephyr-UDP-MIDI2 (udp://192.168.129.35:53982)
+- Block #0 [io : Recv/Send] 'Synthesizer' UMP groups {0, 1, 2, 3} [MIDI1 + MIDI2]
+- Block #1 [i- : Recv     ] 'Keyboard' UMP groups {8} [MIDI1 only]
+- Block #2 [-o :      Send] 'External output (MIDI DIN-5)' UMP groups {9} [MIDI1 31.25kb/s]
+```
+
+### Viewing a particular endpoint's topology
+
+If a UDP endpoint requires authentication, you can request its topology by
+passing the authentication credentials in the url with `pymidi2 topo`
+
+```
+$ uv run pymidi2 topo udp://user:password@192.168.129.35:53982
+Zephyr-UDP-MIDI2 (udp://192.168.129.35:53982)
+- Block #0 [io : Recv/Send] 'Synthesizer' UMP groups {0, 1, 2, 3} [MIDI1 + MIDI2]
+- Block #1 [i- : Recv     ] 'Keyboard' UMP groups {8} [MIDI1 only]
+- Block #2 [-o :      Send] 'External output (MIDI DIN-5)' UMP groups {9} [MIDI1 31.25kb/s]
+```
+
+### Playing a MIDI file
+
+Pass the option `-q / --quiet` to suppress MIDI1 events being printed to stdout.
+
+```
+$ uv run pymidi2 play -e 'udp://192.168.129.35:53982#9' under-the-sea.mid
+BE0750
+8D3E40
+902264
+9E2264
+...
+```
+
+### Sending MIDI1 events
+
+```
+$ uv run pymidi2 send1  udp://192.168.129.35:53982#9 90407F 90427F 90457F
+```
 
 ## Reference documents
 
