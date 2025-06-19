@@ -69,7 +69,13 @@ class Transport:
                 return UDPTransport(
                     peer_ip=parsed.hostname,
                     peer_port=parsed.port,
-                    auth=((parsed.username, parsed.password) if parsed.username else parsed.password) if parsed.password else None,
+                    auth=(
+                        (parsed.username, parsed.password)
+                        if parsed.username
+                        else parsed.password
+                    )
+                    if parsed.password
+                    else None,
                 )
         raise ValueError(f"Invalid UMP endpoint {url=!r}")
 
@@ -200,7 +206,7 @@ class UDPTransport(Transport):
                 user, pwd = map(str.encode, self.auth)
                 auth = sha256(cmd.payload + user + pwd)
                 if len(user) % 4:
-                    pad = len(user) + 4 - len(user)%4
+                    pad = len(user) + 4 - len(user) % 4
                     user = user.ljust(pad, b"\x00")
 
                 self.sendcmd(
@@ -228,7 +234,6 @@ class UDPTransport(Transport):
         while not self.session_established:
             for cmd in self.recvcmd():
                 self.check_invitation(cmd)
-
 
     def _disconnect(self):
         self.sendcmd(

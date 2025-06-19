@@ -184,7 +184,6 @@ if __name__ == "__main__":
     from .transport import UDPTransport
     from .ump import UMP
 
-
     mid = File.open(sys.argv[1])
 
     bpm = 120
@@ -192,7 +191,10 @@ if __name__ == "__main__":
 
     with UDPTransport("192.168.121.111", 5673) as trans:
         for tick, ev in mid:
-            if isinstance(ev, MetaEvent) and ev.meta_type is MetaEvent.MetaType.TEMPO_SETTING:
+            if (
+                isinstance(ev, MetaEvent)
+                and ev.meta_type is MetaEvent.MetaType.TEMPO_SETTING
+            ):
                 # Tempo given in µs per quarter note
                 bpm = 60_000_000 / int.from_bytes(ev.data, byteorder="big")
 

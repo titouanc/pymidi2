@@ -1,10 +1,9 @@
 import logging
-import signal
 from dataclasses import dataclass, field
 from typing import Self, cast
 
 from . import ump
-from .transport import ALSATransport, Transport, UDPTransport
+from .transport import Transport
 
 logger = logging.getLogger(__name__)
 

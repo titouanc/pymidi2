@@ -36,11 +36,23 @@ ACTIONS = {
 
 parser = ArgumentParser(formatter_class=ArgumentDefaultsHelpFormatter)
 parser.add_argument("action", choices=ACTIONS.keys())
-parser.add_argument("-v", "--verbose", action="store_true", help="Enable verbose logging")
+parser.add_argument(
+    "-v", "--verbose", action="store_true", help="Enable verbose logging",
+)
 parser.add_argument("-D", "--debug", action="store_true", help="Enable debug logging")
-parser.add_argument("-u", "--udp-only", action="store_true", help="Only list UDP endpoints")
-parser.add_argument("-a", "--alsa-only", action="store_true", help="Only list ALSA endpoints")
-parser.add_argument("-w", "--wait", type=float, default=0.25, help="Number of seconds to wait for network discovery")
+parser.add_argument(
+    "-u", "--udp-only", action="store_true", help="Only list UDP endpoints",
+)
+parser.add_argument(
+    "-a", "--alsa-only", action="store_true", help="Only list ALSA endpoints",
+)
+parser.add_argument(
+    "-w",
+    "--wait",
+    type=float,
+    default=0.25,
+    help="Number of seconds to wait for network discovery",
+)
 
 
 def main():
@@ -52,6 +64,7 @@ def main():
         logging.basicConfig(level=logging.INFO)
 
     ACTIONS[args.action](args)
+
 
 if __name__ == "__main__":
     main()
