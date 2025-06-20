@@ -10,8 +10,8 @@ Currently, it supports:
 - UMP endpoints over UDP (network / multiplatform)
     - Authentication (shared secret or user:password)
     - Network discovery via zeroconf (DNS-SD)
-- Reading SMF version 1 (.mid) files
 - Endpoint topology discovery via UMP Stream messages
+- Reading Standard MIDI File version 1 (.mid)
 
 ## Installation
 
