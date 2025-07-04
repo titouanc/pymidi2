@@ -1,7 +1,9 @@
 import argparse
+import curses
 import logging
 import time
 from binascii import hexlify, unhexlify
+from dataclasses import dataclass, field
 from itertools import chain
 from urllib.parse import urlparse
 
@@ -154,6 +156,40 @@ def recv_midi2(args):
         return
 
 
+@dataclass
+class GroupMonitor:
+    act: bool = False
+    chan_act: list[bool] = field(default_factory=lambda: 16 * [False])
+
+
+def monitor_endpoint(args):
+    monitors = [GroupMonitor() for i in range(16)]
+    endpoint = UMPEndpoint.open(args.endpoint_url)
+    act_char = {True: "■", False: " "}
+
+    def run(stdscr):
+        header = " ".join(f"{i:2d}" for i in range(1, 17))
+        stdscr.addstr(0, 0, f" --- Channel |{header}")
+
+        def redraw():
+            for i, mon in enumerate(monitors):
+                group = f"Group {1+i:2d} | {act_char[mon.act]}"
+                chans = "  ".join(map(act_char.get, mon.chan_act))
+                stdscr.addstr(1+i, 0, f"{group} | {chans}")
+            stdscr.refresh()
+
+        redraw()
+        while True:
+            ev = endpoint.recv()
+            if hasattr(ev, "group"):
+                monitors[ev.group].act = True
+                if hasattr(ev, "channel"):
+                    monitors[ev.group].chan_act[ev.channel] = True
+                redraw()
+
+    curses.wrapper(run)
+
+
 def main():
     args = parser.parse_args()
 
@@ -239,6 +275,10 @@ parser_send2.add_argument("event", nargs="+")
 parser_recv2 = subparsers.add_parser("recv2", help="Receive MIDI2 events")
 parser_recv2.set_defaults(func=recv_midi2)
 parser_recv2.add_argument("endpoint_url", help="URL of the UMP endpoint to connect to")
+
+parser_mon = subparsers.add_parser("mon", help="Monitor UMP groups and channels")
+parser_mon.set_defaults(func=monitor_endpoint)
+parser_mon.add_argument("endpoint_url", help="URL of the UMP endpoint to connect to")
 
 if __name__ == "__main__":
     main()
