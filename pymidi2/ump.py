@@ -355,7 +355,7 @@ class MIDI1PitchBend(MIDI1ChannelVoice):
     @property
     def midi1(self) -> bytes:
         msb = self.value >> 7
-        lsb = self.value & 0x7f
+        lsb = self.value & 0x7F
         return bytes([(self.status << 4) | self.channel, lsb, msb])
 
     @classmethod

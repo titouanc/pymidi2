@@ -19,7 +19,11 @@ class ClientCapability(IntFlag):
             return ClientCapability.NONE
         elif isinstance(auth, str):
             return ClientCapability.INVITATION_WITH_AUTH
-        elif isinstance(auth, tuple) and len(auth) == 2 and all(isinstance(x, str) for x in auth):
+        elif (
+            isinstance(auth, tuple)
+            and len(auth) == 2
+            and all(isinstance(x, str) for x in auth)
+        ):
             return ClientCapability.INVITATION_WITH_USER_AUTH
 
 

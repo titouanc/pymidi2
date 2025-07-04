@@ -173,9 +173,9 @@ def monitor_endpoint(args):
 
         def redraw():
             for i, mon in enumerate(monitors):
-                group = f"Group {1+i:2d} | {act_char[mon.act]}"
+                group = f"Group {1 + i:2d} | {act_char[mon.act]}"
                 chans = "  ".join(map(act_char.get, mon.chan_act))
-                stdscr.addstr(1+i, 0, f"{group} | {chans}")
+                stdscr.addstr(1 + i, 0, f"{group} | {chans}")
             stdscr.refresh()
 
         redraw()
@@ -265,7 +265,10 @@ parser_send1.add_argument("event", nargs="+")
 
 parser_recv1 = subparsers.add_parser("recv1", help="Receive MIDI1 events")
 parser_recv1.set_defaults(func=recv_midi1)
-parser_recv1.add_argument("endpoint_url", help="URL of the UMP endpoint to connect to (must include the UMP group number)")
+parser_recv1.add_argument(
+    "endpoint_url",
+    help="URL of the UMP endpoint to connect to (must include the UMP group number)",
+)
 
 parser_send2 = subparsers.add_parser("send2", help="Send MIDI2 events")
 parser_send2.set_defaults(func=send_midi2)
