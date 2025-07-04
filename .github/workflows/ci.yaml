@@ -3,25 +3,16 @@ name: Continuous Integration
 on: push
 
 jobs:
-  lint-and-tests:
-    name: Linting & Testing
+  run-tests:
     runs-on: ubuntu-latest
     steps:
-    # Setup
     - uses: actions/checkout@v3
     - uses: astral-sh/setup-uv@v3
-    # Add rules to match text in the command output, and annotate the corresponding
-    # code in the pull request. This allows to show the linter errors directly
-    # in the code review.
-    # See https://github.com/actions/toolkit/blob/main/docs/problem-matchers.md
-    # and https://github.com/actions/runner/blob/main/docs/adrs/0276-problem-matchers.md
-    - run: echo "::add-matcher::.github/python.json"
-
-
-    # Lint
-    - run: uv run ruff format --diff .
-    - run: uv run ruff check .
-    - run: uv run mypy .
-
-    # Test
     - run: uv run pytest
+
+  pre-commit:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+    - uses: actions/setup-python@v3
+    - uses: pre-commit/action@v3.0.1
