@@ -235,6 +235,11 @@ class MIDI1ChannelVoice(UMP):
     def __post_init__(self):
         self.mt = MessageType.MIDI_1_CHANNEL_VOICE
 
+    @property
+    def midi1(self) -> bytes:
+        """Return the message contained in this UMP in MIDI1 format"""
+        raise NotImplementedError()
+
     @classmethod
     def parse(cls, words, **kwargs):
         group = (words[0] >> 24) & 0xF
@@ -261,6 +266,10 @@ class MIDI1NoteOff(MIDI1ChannelVoice):
         super().__post_init__()
         self.status = MIDI1ChannelVoice.Status.NOTE_OFF
 
+    @property
+    def midi1(self) -> bytes:
+        return bytes([(self.status << 4) | self.channel, self.note, self.velocity])
+
     @classmethod
     def parse(cls, words, **kwargs):
         return cls(note=(words[0] >> 8) & 0x7F, velocity=words[0] & 0x7F, **kwargs)
@@ -278,6 +287,10 @@ class MIDI1NoteOn(MIDI1ChannelVoice):
     def __post_init__(self):
         super().__post_init__()
         self.status = MIDI1ChannelVoice.Status.NOTE_ON
+
+    @property
+    def midi1(self) -> bytes:
+        return bytes([(self.status << 4) | self.channel, self.note, self.velocity])
 
     @classmethod
     def parse(cls, words, **kwargs):
@@ -297,6 +310,10 @@ class MIDI1ControlChange(MIDI1ChannelVoice):
         super().__post_init__()
         self.status = MIDI1ChannelVoice.Status.CONTROL_CHANGE
 
+    @property
+    def midi1(self) -> bytes:
+        return bytes([(self.status << 4) | self.channel, self.controller, self.value])
+
     @classmethod
     def parse(cls, words, **kwargs):
         return cls(controller=(words[0] >> 8) & 0x7F, value=words[0] & 0x7F, **kwargs)
@@ -314,6 +331,10 @@ class MIDI1ProgramChange(MIDI1ChannelVoice):
         super().__post_init__()
         self.status = MIDI1ChannelVoice.Status.PROGRAM_CHANGE
 
+    @property
+    def midi1(self) -> bytes:
+        return bytes([(self.status << 4) | self.channel, self.program])
+
     @classmethod
     def parse(cls, words, **kwargs):
         return cls(program=words[0] & 0x7F, **kwargs)
@@ -330,6 +351,12 @@ class MIDI1PitchBend(MIDI1ChannelVoice):
     def __post_init__(self):
         super().__post_init__()
         self.status = MIDI1ChannelVoice.Status.PITCH_BEND
+
+    @property
+    def midi1(self) -> bytes:
+        msb = self.value >> 7
+        lsb = self.value & 0x7f
+        return bytes([(self.status << 4) | self.channel, lsb, msb])
 
     @classmethod
     def parse(cls, words, **kwargs):

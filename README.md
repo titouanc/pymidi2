@@ -118,7 +118,20 @@ BE0750
 Pass one or more MIDI1 events, in hexadecimal form
 
 ```
-$ uv run pymidi2 send1  udp://192.168.129.35:53982#9 90407F 90427F 90457F
+$ uv run pymidi2 send1 udp://192.168.129.35:53982#9 90407F 90427F 90457F
+```
+
+### `recv1`: Receiving MIDI1 events
+
+This prints out only MIDI1 events from a single UMP group, in MIDI1 format.
+Pass an endpoint url including the UMP group.
+
+```
+$ uv run pymidi2 recv1 udp://192.0.2.1:45486#9
+904060
+804060
+904060
+...
 ```
 
 ### `send2`: Sending MIDI2 events
@@ -128,6 +141,20 @@ packet by commas,.
 
 ```
  $ uv run pymidi2 send2 udp://192.168.129.35:53982 49904000,FFFF0000 2990427F
+```
+
+### `recv2`: Receiving MIDI2 events
+
+This prints out all Universal MIDI Packets from an endpoint, in UMP format.
+Pass an endpoint url, if specifying the UMP group, then only packets from this
+group are printed.
+
+```
+$ uv run pymidi2 recv2 udp://192.0.2.1:45486
+29904060
+29804060
+29904060
+...
 ```
 
 ## Reference documents

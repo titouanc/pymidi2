@@ -118,11 +118,40 @@ def send_midi1(args):
     endpoint.sendmany(pkts)
 
 
+def recv_midi1(args):
+    endpoint = UMPEndpoint.open(args.endpoint_url)
+    group = get_ump_group(args.endpoint_url, -1)
+
+    try:
+        while True:
+            ev = endpoint.recv()
+            if ev.group == group and isinstance(ev, ump.MIDI1ChannelVoice):
+                print(hexlify(ev.midi1).decode().upper())
+    except KeyboardInterrupt:
+        return
+
+
 def send_midi2(args):
     pkts = [ump.UMP.parse([int(w, 16) for w in ev.split(",")]) for ev in args.event]
 
     endpoint = UMPEndpoint.open(args.endpoint_url)
     endpoint.sendmany(pkts)
+
+
+def recv_midi2(args):
+    endpoint = UMPEndpoint.open(args.endpoint_url)
+    try:
+        group = get_ump_group(args.endpoint_url, -1)
+    except ValueError:
+        group = None
+
+    try:
+        while True:
+            ev = endpoint.recv()
+            if group is None or group == ev.group:
+                print(" ".join(f"{w:08X}" for w in ev.encode()))
+    except KeyboardInterrupt:
+        return
 
 
 def main():
@@ -198,11 +227,18 @@ parser_send1.set_defaults(func=send_midi1)
 parser_send1.add_argument("endpoint_url", help="URL of the UMP endpoint to connect to")
 parser_send1.add_argument("event", nargs="+")
 
+parser_recv1 = subparsers.add_parser("recv1", help="Receive MIDI1 events")
+parser_recv1.set_defaults(func=recv_midi1)
+parser_recv1.add_argument("endpoint_url", help="URL of the UMP endpoint to connect to (must include the UMP group number)")
 
 parser_send2 = subparsers.add_parser("send2", help="Send MIDI2 events")
 parser_send2.set_defaults(func=send_midi2)
 parser_send2.add_argument("endpoint_url", help="URL of the UMP endpoint to connect to")
 parser_send2.add_argument("event", nargs="+")
+
+parser_recv2 = subparsers.add_parser("recv2", help="Receive MIDI2 events")
+parser_recv2.set_defaults(func=recv_midi2)
+parser_recv2.add_argument("endpoint_url", help="URL of the UMP endpoint to connect to")
 
 if __name__ == "__main__":
     main()
