@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import struct
 from dataclasses import dataclass
 from enum import Enum, IntEnum, IntFlag, auto
@@ -14,17 +16,19 @@ class ClientCapability(IntFlag):
     INVITATION_WITH_USER_AUTH = 1 << 1
 
     @classmethod
-    def from_auth(cls, auth: None | str | tuple[str, str]) -> Self:
+    def from_auth(cls, auth: None | str | tuple[str, str]) -> ClientCapability:
         if auth is None:
-            return ClientCapability.NONE
+            return cls.NONE
         elif isinstance(auth, str):
-            return ClientCapability.INVITATION_WITH_AUTH
+            return cls.INVITATION_WITH_AUTH
         elif (
             isinstance(auth, tuple)
             and len(auth) == 2
             and all(isinstance(x, str) for x in auth)
         ):
-            return ClientCapability.INVITATION_WITH_USER_AUTH
+            return cls.INVITATION_WITH_USER_AUTH
+        else:
+            raise ValueError("Invalid auth format")
 
 
 class SessionState(Enum):
