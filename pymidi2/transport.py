@@ -252,7 +252,7 @@ class UDPTransport(Transport):
         self.sendcmd(
             udp.CommandPacket(
                 command=udp.CommandCode.INVITATION,
-                specific_data=udp.ClientCapability.NONE,
+                specific_data=udp.ClientCapability.from_auth(self.auth),
             ),
         )
 

@@ -13,6 +13,15 @@ class ClientCapability(IntFlag):
     INVITATION_WITH_AUTH = 1 << 0
     INVITATION_WITH_USER_AUTH = 1 << 1
 
+    @classmethod
+    def from_auth(cls, auth: None | str | tuple[str, str]) -> Self:
+        if auth is None:
+            return ClientCapability.NONE
+        elif isinstance(auth, str):
+            return ClientCapability.INVITATION_WITH_AUTH
+        elif isinstance(auth, tuple) and len(auth) == 2 and all(isinstance(x, str) for x in auth):
+            return ClientCapability.INVITATION_WITH_USER_AUTH
+
 
 class SessionState(Enum):
     """

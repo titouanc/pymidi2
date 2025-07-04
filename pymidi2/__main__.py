@@ -31,7 +31,7 @@ def print_ep_topology(endpoint_url: str) -> None:
         ep = UMPEndpoint.open(endpoint_url)
         ep.discover()
 
-        print(f"{ep.name} ({endpoint_url})")
+        print(f"{ep.name if ep.name else '<Endpoint>'} ({endpoint_url})")
         for fb in ep.function_blocks:
             print("-", fb)
 
@@ -199,7 +199,7 @@ parser_send1.add_argument("endpoint_url", help="URL of the UMP endpoint to conne
 parser_send1.add_argument("event", nargs="+")
 
 
-parser_send2 = subparsers.add_parser("send2", help="Send MIDI1 events")
+parser_send2 = subparsers.add_parser("send2", help="Send MIDI2 events")
 parser_send2.set_defaults(func=send_midi2)
 parser_send2.add_argument("endpoint_url", help="URL of the UMP endpoint to connect to")
 parser_send2.add_argument("event", nargs="+")

@@ -20,7 +20,6 @@ class FunctionBlock:
     midi1: bool
     restrict_31_25kbps: bool
     name: str | None = None
-    _name_complete: bool = False
 
     @classmethod
     def from_info(cls, pkt: ump.FunctionBlockInfoNotification) -> Self:
@@ -52,9 +51,11 @@ class FunctionBlock:
         elif self.midi1:
             limitation = "[MIDI1 only]"
 
+        name = self.name if self.name else "<Function Block>"
+
         return (
             f"Block #{self._id} [{direction} : {role}] "
-            f"'{self.name}' UMP groups {self.groups} {limitation}"
+            f"'{name}' UMP groups {self.groups} {limitation}"
         )
 
 
@@ -63,7 +64,6 @@ class UMPEndpoint:
     transport: Transport
     function_blocks: list[FunctionBlock | None] = field(default_factory=list)
     name: str | None = None
-    _name_complete: bool = False
     _transport_connected: bool = False
 
     @classmethod
@@ -88,12 +88,9 @@ class UMPEndpoint:
         elif isinstance(pkt, ump.EndpointNameNotification):
             if pkt.form.is_starting:
                 self.name = ""
-                self._name_complete = False
             if self.name is None:
                 return
             self.name += pkt.name
-            if pkt.form.is_ending:
-                self._name_complete = True
 
         elif isinstance(pkt, ump.FunctionBlockInfoNotification):
             if pkt.function_block_id >= len(self.function_blocks):
@@ -114,20 +111,11 @@ class UMPEndpoint:
             if block := self.function_blocks[pkt.function_block_id]:
                 if pkt.form.is_starting:
                     block.name = ""
-                    block._name_complete = False
                 if block.name is None:
                     return
                 block.name += pkt.name
-                if pkt.form.is_ending:
-                    block._name_complete = True
 
-    @property
-    def has_all_names(self) -> bool:
-        return self._name_complete and all(
-            f is not None and f._name_complete for f in self.function_blocks
-        )
-
-    def discover(self, wait_for_all_names: bool = True) -> None:
+    def discover(self) -> None:
         self.function_blocks = []
         self.name = None
 
@@ -154,9 +142,21 @@ class UMPEndpoint:
         while not all(self.function_blocks):
             self.dispatch(self.transport.recv())
 
-        if wait_for_all_names:
-            while not self.has_all_names:
-                self.dispatch(self.transport.recv())
+        # Send 1 more request for Endpoint Info Notification.
+        # When we get its reply, all requests above should have been processed
+        self.transport.send(
+            ump.EndpointDiscovery(
+                form=ump.StreamFormat.COMPLETE,
+                ump_version=(1, 1),
+                filter=ump.EndpointDiscovery.Filter.ENDPOINT_INFO_NOTIFICATION,
+            ),
+        )
+        while True:
+            msg = self.transport.recv()
+            if isinstance(msg, ump.EndpointInfoNotification):
+                break
+            else:
+                self.dispatch(msg)
 
     def send(self, pkt: ump.UMP) -> None:
         self.transport.send(pkt)
