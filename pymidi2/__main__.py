@@ -165,7 +165,7 @@ class GroupMonitor:
 def monitor_endpoint(args):
     monitors = [GroupMonitor() for i in range(16)]
     endpoint = UMPEndpoint.open(args.endpoint_url)
-    act_char = {True: "■", False: " "}
+    act_char = {True: "■", False: "."}
 
     def run(stdscr):
         header = " ".join(f"{i:2d}" for i in range(1, 17))
