@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import platform
 import socket
 import struct
 from abc import abstractmethod
@@ -215,7 +216,8 @@ class UDPTransport(Transport):
                 if not isinstance(self.auth, str):
                     raise SharedSecretRequiredError()
 
-                auth = sha256(cmd.payload + self.auth.encode())
+                nonce = cmd.payload[:16]
+                auth = sha256(nonce + self.auth.encode())
                 logger.info(f"Shared secret auth to {self.peer}")
                 self.sendcmd(
                     udp.CommandPacket(
@@ -230,7 +232,8 @@ class UDPTransport(Transport):
 
                 logger.info(f"User auth to {self.peer} as {self.auth[0]}")
                 user, pwd = map(str.encode, self.auth)
-                auth = sha256(cmd.payload + user + pwd)
+                nonce = cmd.payload[:16]
+                auth = sha256(nonce + user + pwd)
                 if len(user) % 4:
                     pad = len(user) + 4 - len(user) % 4
                     user = user.ljust(pad, b"\x00")
@@ -250,9 +253,10 @@ class UDPTransport(Transport):
 
         # 1. Send invitation packet
         self.sendcmd(
-            udp.CommandPacket(
-                command=udp.CommandCode.INVITATION,
-                specific_data=udp.ClientCapability.from_auth(self.auth),
+            udp.CommandPacket.invitation(
+                caps=udp.ClientCapability.from_auth(self.auth),
+                ep_name="pymidi2",
+                piid=platform.node(),
             ),
         )
 

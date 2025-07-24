@@ -3,6 +3,7 @@ from __future__ import annotations
 import struct
 from dataclasses import dataclass
 from enum import Enum, IntEnum, IntFlag, auto
+from math import ceil
 from typing import Self
 
 
@@ -105,6 +106,23 @@ class CommandPacket:
                 "Expected the payload length to be a multiple of 4 Bytes, "
                 f"but got {p} Bytes instead",
             )
+
+    @classmethod
+    def invitation(cls, caps: ClientCapability, ep_name: str, piid: str) -> Self:
+        ep_name_bytes = ep_name.encode("utf-8")
+        piid_bytes = piid.encode("ascii")
+
+        ep_name_len_words = ceil(len(ep_name_bytes) / 4)
+        piid_len_words = ceil(len(piid_bytes) / 4)
+
+        return cls(
+            command=CommandCode.INVITATION,
+            specific_data=(ep_name_len_words << 8) | caps,
+            payload=(
+                ep_name_bytes.ljust(4 * ep_name_len_words, b"\x00")
+                + piid_bytes.ljust(4 * piid_len_words, b"\x00")
+            ),
+        )
 
     @classmethod
     def parse(cls, buf: bytes) -> tuple[Self, bytes]:
