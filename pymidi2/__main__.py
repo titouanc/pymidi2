@@ -1,6 +1,8 @@
 import argparse
 import curses
+import functools
 import logging
+import sys
 import time
 from binascii import hexlify, unhexlify
 from dataclasses import dataclass, field
@@ -16,6 +18,17 @@ from pymidi2.transport import (
     UDPTransport,
     UserPasswordRequiredError,
 )
+
+
+def cancellable(func):
+    @functools.wraps(func)
+    def wrapper(*args, **kwargs):
+        try:
+            return func(*args, **kwargs)
+        except KeyboardInterrupt:
+            print("Cancelled", file=sys.stderr)
+
+    return wrapper
 
 
 def get_ump_group(endpoint_url: str, default: int = 0) -> int:
@@ -67,6 +80,7 @@ def topo_endpoint(args) -> None:
         print_ep_topology(args.endpoint_url)
 
 
+@cancellable
 def play_file(args) -> None:
     endpoint = None
     ump_group = 0
