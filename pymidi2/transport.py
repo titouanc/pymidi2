@@ -161,13 +161,15 @@ class UserPasswordRequiredError(PermissionError):
 class UDPTransport(Transport):
     peer_ip: str
     peer_port: int
-    bind_ip: str = "0.0.0.0"
-    bind_port: int = 0
     tx_seq: int = 0
     rx_queue: list[UMP] = field(default_factory=list)
     session_established: bool = False
     auth: None | str | tuple[str, str] = None
     _mdns_listener: ClassVar[MIDI2Listener] = MIDI2Listener()
+
+    @property
+    def is_ipv6(self) -> bool:
+        return ":" in self.peer_ip
 
     @property
     def url(self) -> str:
@@ -180,7 +182,10 @@ class UDPTransport(Transport):
 
     @property
     def peer(self) -> str:
-        return f"{self.peer_ip}:{self.peer_port}"
+        peer_ip = self.peer_ip
+        if self.is_ipv6:
+            peer_ip = f"[{peer_ip}]"
+        return f"{peer_ip}:{self.peer_port}"
 
     @classmethod
     def find(cls) -> list[Self]:
@@ -200,7 +205,7 @@ class UDPTransport(Transport):
     def recvcmd(self) -> list[udp.CommandPacket]:
         while True:
             buf, addr_info = self.sock.recvfrom(1500)
-            if addr_info != (self.peer_ip, self.peer_port):
+            if addr_info[:2] != (self.peer_ip, self.peer_port):
                 continue
             pkt = udp.MIDIUDPPacket.parse(buf)
             logger.debug(f"Rx {pkt!r}")
@@ -247,9 +252,13 @@ class UDPTransport(Transport):
 
     def _connect(self):
         self.session_established = False
-        self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        self.sock.bind((self.bind_ip, self.bind_port))
+        addr = "::" if self.is_ipv6 else "0.0.0.0"
+        af = socket.AF_INET6 if self.is_ipv6 else socket.AF_INET
+        self.sock = socket.socket(af, socket.SOCK_DGRAM)
         self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        if self.is_ipv6:
+            self.sock.setsockopt(socket.IPPROTO_IPV6, socket.IPV6_V6ONLY, 0)
+        self.sock.bind((addr, 0))
 
         # 1. Send invitation packet
         self.sendcmd(
