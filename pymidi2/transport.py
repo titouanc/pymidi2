@@ -248,7 +248,7 @@ class UDPTransport(Transport):
     def _connect(self):
         self.session_established = False
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        self.sock.bind(("0.0.0.0", 0))
+        self.sock.bind((self.bind_ip, self.bind_port))
         self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
 
         # 1. Send invitation packet
