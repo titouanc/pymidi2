@@ -13,6 +13,7 @@ from pymidi2 import smf, ump
 from pymidi2.endpoint import UMPEndpoint
 from pymidi2.transport import (
     ALSATransport,
+    AuthenticationError,
     SharedSecretRequiredError,
     Transport,
     UDPTransport,
@@ -54,6 +55,8 @@ def print_ep_topology(endpoint_url: str) -> None:
         print(f"{endpoint_url} - Requires shared secret authentication")
     except UserPasswordRequiredError:
         print(f"{endpoint_url} - Requires user/password authentication")
+    except AuthenticationError:
+        print(f"{endpoint_url} - Invalid authentication credentials")
 
 
 def find_endpoints(args) -> None:

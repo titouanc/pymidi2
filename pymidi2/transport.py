@@ -157,6 +157,11 @@ class UserPasswordRequiredError(PermissionError):
         super().__init__("Endpoint requires a user/password authentication")
 
 
+class AuthenticationError(PermissionError):
+    def __init__(self):
+        super().__init__("Invalid authentication credentials")
+
+
 @dataclass
 class UDPTransport(Transport):
     peer_ip: str
@@ -221,6 +226,9 @@ class UDPTransport(Transport):
                 if not isinstance(self.auth, str):
                     raise SharedSecretRequiredError()
 
+                if cmd.specific_data & 0x01:
+                    raise AuthenticationError()
+
                 nonce = cmd.payload[:16]
                 auth = sha256(nonce + self.auth.encode())
                 logger.info(f"Shared secret auth to {self.peer}")
@@ -234,6 +242,9 @@ class UDPTransport(Transport):
             case udp.CommandCode.INVITATION_REPLY_USER_AUTH_REQUIRED:
                 if not isinstance(self.auth, tuple):
                     raise UserPasswordRequiredError()
+
+                if cmd.specific_data & 0x01:
+                    raise AuthenticationError()
 
                 logger.info(f"User auth to {self.peer} as {self.auth[0]}")
                 user, pwd = map(str.encode, self.auth)
